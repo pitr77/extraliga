@@ -18,40 +18,33 @@ h1 {
     display: flex;
     gap: 20px;
     justify-content: space-between;
-    flex-wrap: nowrap;
 }
 
-/* PC rozloženie */
-.left {
-    flex: 2.2;
-    background: #ffffff;
+/* Rozloženie stĺpcov */
+.left, .middle, .right, .mantingal-mobile {
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.left {
+    flex: 2.2;
+    background: #ffffff;
 }
 
 .middle {
     flex: 0.9;
     background: #f9fbfd;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .right {
     flex: 0.9;
     background: #fdfaf6;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .mantingal-mobile {
-    display: none; /* default skryté – len pre mobil */
     background: #eef8f0;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: none; /* default skryté */
 }
 
 h2 {
@@ -152,13 +145,11 @@ tr:hover {
     }
 
     .left, .middle, .right, .mantingal-mobile {
-        display: none;
+        display: none; /* default skryté na mobile */
     }
 
-    .left.active,
-    .middle.active,
-    .right.active,
-    .mantingal-mobile.active {
+    /* vybraná sekcia z menu */
+    .section.active {
         display: block;
     }
 }

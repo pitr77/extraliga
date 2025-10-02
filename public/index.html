@@ -12,16 +12,16 @@
     <!-- 📱 mobilné menu -->
     <div class="mobile-menu">
         <select id="mobileSelect">
-            <option value="left">Zápasy</option>
-            <option value="middle">Rating tímov</option>
-            <option value="right">Rating hráčov</option>
-            <option value="mantingal-mobile">Mantingal</option>
+            <option value="matches">Zápasy</option>
+            <option value="teams">Rating tímov</option>
+            <option value="players">Rating hráčov</option>
+            <option value="mantingal">Mantingal</option>
         </select>
     </div>
 
     <div class="container">
         <!-- 🏒 Zápasy -->
-        <div class="left">
+        <div class="left section" id="matches-section">
             <h2>Zápasy</h2>
             <table id="matches">
                 <thead>
@@ -32,12 +32,14 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <!-- zápasy sa načítajú JS -->
+                </tbody>
             </table>
         </div>
 
         <!-- 📊 Rating tímov -->
-        <div class="middle">
+        <div class="middle section" id="teams-section">
             <h2>Rating tímov</h2>
             <table id="teamRatings">
                 <thead>
@@ -46,12 +48,14 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <!-- ratingy sa načítajú JS -->
+                </tbody>
             </table>
         </div>
 
         <!-- 🧑‍🚀 Rating hráčov -->
-        <div class="right">
+        <div class="right section" id="players-section">
             <h2>Rating hráčov</h2>
             <table id="playerRatings">
                 <thead>
@@ -60,36 +64,29 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <!-- top hráči sa načítajú JS -->
+                </tbody>
             </table>
         </div>
 
-        <!-- 📒 Mantingal (len pre mobil) -->
-        <div class="mantingal-mobile">
-            <h2>Mantingal</h2>
-            <div id="mantingal-container"></div>
+        <!-- 💰 Mantingal -->
+        <div class="mantingal-mobile section" id="mantingal-container">
+            <!-- Mantingal sa načíta JS -->
         </div>
     </div>
 
     <script src="app.js"></script>
     <script>
-        // prepínanie sekcií na mobile
-        document.addEventListener("DOMContentLoaded", () => {
-            const select = document.getElementById("mobileSelect");
-            const sections = document.querySelectorAll(".left, .middle, .right, .mantingal-mobile");
+        // 📱 prepínanie sekcií na mobile
+        document.getElementById("mobileSelect").addEventListener("change", (e) => {
+            const val = e.target.value;
+            document.querySelectorAll(".section").forEach(sec => sec.style.display = "none");
 
-            function showSection(value) {
-                sections.forEach(sec => sec.classList.remove("active"));
-                const chosen = document.querySelector("." + value);
-                if (chosen) chosen.classList.add("active");
-            }
-
-            // default – zápasy
-            showSection("left");
-
-            select.addEventListener("change", () => {
-                showSection(select.value);
-            });
+            if (val === "matches") document.getElementById("matches-section").style.display = "block";
+            if (val === "teams") document.getElementById("teams-section").style.display = "block";
+            if (val === "players") document.getElementById("players-section").style.display = "block";
+            if (val === "mantingal") document.getElementById("mantingal-container").style.display = "block";
         });
     </script>
 </body>
