@@ -14,7 +14,6 @@ async function fetchMatches() {
         const response = await fetch(`${API_BASE}/api/matches`);
         const data = await response.json();
 
-        // uložíme všetky zápasy (budeme z nich simulovať Mantingal)
         allMatches = data.matches || [];
 
         const matches = allMatches.map(match => ({
@@ -36,7 +35,7 @@ async function fetchMatches() {
 
         displayTeamRatings();
         displayPlayerRatings();
-        displayMantingal(); // korektný prepočet z histórie + denník
+        displayMantingal(); 
     } catch (err) {
         console.error("Chyba pri načítaní zápasov:", err);
     }
@@ -69,12 +68,11 @@ function displayMatches(matches) {
             <td>${statusText}</td>
         `;
 
-        // klikateľnosť pre každý zápas
         row.style.cursor = "pointer";
         row.addEventListener("click", async () => {
             const existingDetails = row.nextElementSibling;
             if (existingDetails && existingDetails.classList.contains("details-row")) {
-                existingDetails.remove(); // zroluj späť
+                existingDetails.remove();
                 return;
             }
 
@@ -83,7 +81,6 @@ function displayMatches(matches) {
                 const response = await fetch(endpoint);
                 const data = await response.json();
 
-                // odstráň staré detaily
                 document.querySelectorAll(".details-row").forEach(el => el.remove());
 
                 const detailsRow = document.createElement("tr");
@@ -92,12 +89,10 @@ function displayMatches(matches) {
                 const detailsCell = document.createElement("td");
                 detailsCell.colSpan = 4;
 
-                // po tretinách
                 const periods = `/${(data.sport_event_status.period_scores || [])
                     .map(p => `${p.home_score}:${p.away_score}`)
                     .join("; ")}/`;
 
-                // rozdelenie hráčov na domáci/hostia
                 const homeTeam = data.statistics?.totals?.competitors?.find?.(t => t.qualifier === "home") || { name: "Domáci", players: [] };
                 const awayTeam = data.statistics?.totals?.competitors?.find?.(t => t.qualifier === "away") || { name: "Hostia", players: [] };
 
@@ -175,13 +170,17 @@ function displayPlayerRatings() {
  *  =========================
  */
 function displayMantingal() {
-    const container = document.querySelector(".right");
+    const containerDesktop = document.querySelector(".right"); // PC
+    const containerMobile = document.getElementById("mantingal-container"); // mobile
 
     // zmaž staré vykreslenie
-    const oldTable = document.getElementById("mantingal");
-    const oldSummary = document.getElementById("mantingal-summary");
-    if (oldTable) oldTable.remove();
-    if (oldSummary) oldSummary.remove();
+    [containerDesktop, containerMobile].forEach(container => {
+        if (!container) return;
+        const oldTable = container.querySelector("#mantingal");
+        const oldSummary = container.querySelector("#mantingal-summary");
+        if (oldTable) oldTable.remove();
+        if (oldSummary) oldSummary.remove();
+    });
 
     const completed = (allMatches || [])
         .filter(m => m.sport_event_status && (m.sport_event_status.status === "closed" || m.sport_event_status.status === "ap"))
@@ -326,14 +325,18 @@ function displayMantingal() {
         <p><b>Profit</b>: ${profit.toFixed(2)} €</p>
     `;
 
-    container.appendChild(table);
-    container.appendChild(summary);
+    // render do PC aj mobilu
+    [containerDesktop, containerMobile].forEach(container => {
+        if (!container) return;
+        container.appendChild(table.cloneNode(true));
+        container.appendChild(summary.cloneNode(true));
+    });
 
-    // ✅ Opravený event listener na denník
-    table.querySelectorAll(".btn-log").forEach(btn => {
+    // ✅ Event listener pre tlačidlo denníka
+    document.querySelectorAll(".btn-log").forEach(btn => {
         btn.addEventListener("click", () => {
-            const encodedName = btn.getAttribute("data-player"); // použijeme rovnaký encoded názov
-            const row = document.getElementById(`log-${encodedName}`);
+            const encodedName = btn.getAttribute("data-player");
+            const row = document.querySelector(`#log-${encodedName}`);
             if (!row) return;
             row.style.display = row.style.display === "none" ? "" : "none";
         });
