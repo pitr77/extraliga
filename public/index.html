@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slovenská hokejová Extraliga</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Slovenská hokejová Extraliga</h1>
+
+    <div class="container">
+        <!-- 🏒 Zápasy -->
+        <div class="left">
+            <h2>Zápasy</h2>
+            <table id="matches">
+                <thead>
+                    <tr>
+                        <th>Domáci</th>
+                        <th>Hostia</th>
+                        <th>Skóre</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- zápasy sa načítajú JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 📊 Rating tímov -->
+        <div class="middle">
+            <h2>Rating tímov</h2>
+            <table id="teamRatings">
+                <thead>
+                    <tr>
+                        <th>Tím</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- ratingy sa načítajú JS -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 🧑‍🚀 Rating hráčov -->
+        <div class="right">
+            <h2>Rating hráčov</h2>
+            <table id="playerRatings">
+                <thead>
+                    <tr>
+                        <th>Hráč</th>
+                        <th>Rating</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- top hráči sa načítajú JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
