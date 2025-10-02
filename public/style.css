@@ -20,7 +20,7 @@ h1 {
     justify-content: space-between;
 }
 
-/* Rozloženie stĺpcov */
+/* Sekcie */
 .left, .middle, .right, .mantingal-mobile {
     padding: 15px;
     border-radius: 12px;
@@ -44,7 +44,6 @@ h1 {
 
 .mantingal-mobile {
     background: #eef8f0;
-    display: none; /* default skryté */
 }
 
 h2 {
@@ -144,11 +143,10 @@ tr:hover {
         display: block;
     }
 
-    .left, .middle, .right, .mantingal-mobile {
-        display: none; /* default skryté na mobile */
+    .section {
+        display: none; /* default skryté */
     }
 
-    /* vybraná sekcia z menu */
     .section.active {
         display: block;
     }

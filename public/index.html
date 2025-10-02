@@ -12,10 +12,10 @@
     <!-- 📱 mobilné menu -->
     <div class="mobile-menu">
         <select id="mobileSelect">
-            <option value="matches">Zápasy</option>
-            <option value="teams">Rating tímov</option>
-            <option value="players">Rating hráčov</option>
-            <option value="mantingal">Mantingal</option>
+            <option value="matches-section">Zápasy</option>
+            <option value="teams-section">Rating tímov</option>
+            <option value="players-section">Rating hráčov</option>
+            <option value="mantingal-container">Mantingal</option>
         </select>
     </div>
 
@@ -32,9 +32,7 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- zápasy sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -48,9 +46,7 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- ratingy sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -64,9 +60,7 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- top hráči sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -79,14 +73,19 @@
     <script src="app.js"></script>
     <script>
         // 📱 prepínanie sekcií na mobile
-        document.getElementById("mobileSelect").addEventListener("change", (e) => {
-            const val = e.target.value;
-            document.querySelectorAll(".section").forEach(sec => sec.style.display = "none");
+        function showSection(sectionId) {
+            document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
+            const el = document.getElementById(sectionId);
+            if (el) el.classList.add("active");
+        }
 
-            if (val === "matches") document.getElementById("matches-section").style.display = "block";
-            if (val === "teams") document.getElementById("teams-section").style.display = "block";
-            if (val === "players") document.getElementById("players-section").style.display = "block";
-            if (val === "mantingal") document.getElementById("mantingal-container").style.display = "block";
+        document.getElementById("mobileSelect").addEventListener("change", (e) => {
+            showSection(e.target.value);
+        });
+
+        // nastavíme default = zápasy
+        document.addEventListener("DOMContentLoaded", () => {
+            showSection("matches-section");
         });
     </script>
 </body>
