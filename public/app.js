@@ -1,5 +1,3 @@
-// /public/app.js
-
 let teamRatings = {};
 let playerRatings = {};
 let allMatches = [];
@@ -7,7 +5,7 @@ let allMatches = [];
 const BASE_STAKE = 1;
 const ODDS = 2.5;
 
-// ✅ voláme serverless API relatívne k doméne na Verceli
+// 👉 API ide teraz cez Vercel serverless funkcie (/api)
 const API_BASE = "";
 
 // načítanie zápasov
@@ -81,8 +79,7 @@ function displayMatches(matches) {
             }
 
             try {
-                // 🔁 teraz voláme /api/match-details?homeId=...&awayId=...
-                const endpoint = `${API_BASE}/api/match-details?homeId=${encodeURIComponent(match.home_id)}&awayId=${encodeURIComponent(match.away_id)}`;
+                const endpoint = `${API_BASE}/api/match-details?homeId=${match.home_id}&awayId=${match.away_id}`;
                 const response = await fetch(endpoint);
                 const data = await response.json();
 
@@ -96,7 +93,7 @@ function displayMatches(matches) {
                 detailsCell.colSpan = 4;
 
                 // po tretinách
-                const periods = `/${(data.sport_event_status?.period_scores || [])
+                const periods = `/${(data.sport_event_status.period_scores || [])
                     .map(p => `${p.home_score}:${p.away_score}`)
                     .join("; ")}/`;
 
@@ -117,7 +114,7 @@ function displayMatches(matches) {
 
                 detailsCell.innerHTML = `
                     <div class="details-box">
-                        <h4>Skóre: ${data.sport_event_status?.home_score ?? "-"} : ${data.sport_event_status?.away_score ?? "-"}</h4>
+                        <h4>Skóre: ${data.sport_event_status.home_score ?? "-"} : ${data.sport_event_status.away_score ?? "-"}</h4>
                         <p><b>Po tretinách:</b> ${periods}</p>
                         <div class="teams-stats">
                             <div class="team-column team-home">
@@ -186,18 +183,15 @@ function displayMantingal() {
     if (oldTable) oldTable.remove();
     if (oldSummary) oldSummary.remove();
 
-    // vyber len ukončené zápasy s hráčskymi štatistikami
     const completed = (allMatches || [])
         .filter(m => m.sport_event_status && (m.sport_event_status.status === "closed" || m.sport_event_status.status === "ap"))
         .filter(m => m.statistics && m.statistics.totals && Array.isArray(m.statistics.totals.competitors))
         .slice();
 
-    // zoradiť podľa času (od najstarších)
     completed.sort((a, b) =>
         new Date(a.sport_event.start_time) - new Date(b.sport_event.start_time)
     );
 
-    // zoskupiť podľa dňa (YYYY-MM-DD)
     const byDay = {};
     for (const m of completed) {
         const d = new Date(m.sport_event.start_time).toISOString().slice(0, 10);
@@ -205,13 +199,11 @@ function displayMantingal() {
     }
     const days = Object.keys(byDay).sort();
 
-    // priebežné ratingy
     const ratingSoFar = {};
     const initRating = (name) => {
         if (ratingSoFar[name] == null) ratingSoFar[name] = 1500;
     };
 
-    // stav mantingalu pre všetkých hráčov
     const state = {};
     const ensureState = (name) => {
         if (!state[name]) {
@@ -220,7 +212,6 @@ function displayMantingal() {
         return state[name];
     };
 
-    // simulácia po dňoch
     for (const day of days) {
         const top3 = Object.entries(ratingSoFar)
             .sort((a, b) => b[1] - a[1])
@@ -263,7 +254,6 @@ function displayMantingal() {
             }
         }
 
-        // po vyhodnotení dňa updatni ratingy
         for (const match of byDay[day]) {
             for (const team of match.statistics.totals.competitors) {
                 for (const p of (team.players || [])) {
@@ -274,12 +264,10 @@ function displayMantingal() {
         }
     }
 
-    // aktuálna TOP3 (podľa globálneho playerRatings)
     const currentTop3 = Object.entries(playerRatings)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3);
 
-    // vykreslenie tabuľky Mantingal
     const table = document.createElement("table");
     table.id = "mantingal";
     table.innerHTML = `
