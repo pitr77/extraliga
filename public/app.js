@@ -176,12 +176,16 @@ function displayPlayerRatings() {
  */
 function displayMantingal() {
     const container = document.querySelector(".right");
+    const containerMobile = document.querySelector(".mantingal-mobile");
 
     // zmaž staré vykreslenie
-    const oldTable = document.getElementById("mantingal");
-    const oldSummary = document.getElementById("mantingal-summary");
-    if (oldTable) oldTable.remove();
-    if (oldSummary) oldSummary.remove();
+    [container, containerMobile].forEach(c => {
+        if (!c) return;
+        const oldTable = c.querySelector("#mantingal");
+        const oldSummary = c.querySelector("#mantingal-summary");
+        if (oldTable) oldTable.remove();
+        if (oldSummary) oldSummary.remove();
+    });
 
     const completed = (allMatches || [])
         .filter(m => m.sport_event_status && (m.sport_event_status.status === "closed" || m.sport_event_status.status === "ap"))
@@ -268,75 +272,73 @@ function displayMantingal() {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3);
 
-    const table = document.createElement("table");
-    table.id = "mantingal";
-    table.innerHTML = `
-        <thead>
-            <tr><th colspan="5">Mantingal – TOP 3 (kurz ${ODDS})</th></tr>
-            <tr><th>Hráč</th><th>Kurz</th><th>Vklad</th><th>Posledný výsledok</th><th>Denník</th></tr>
-        </thead>
-        <tbody>
-            ${currentTop3.map(([name]) => {
-                const s = state[name] || { stake: BASE_STAKE, lastResult: "—", log: [] };
-                const logHtml = (s.log.length
-                    ? s.log.map(e => `
-                        <div>
-                            <b>${e.date}</b> – stake: ${e.stake_before} €,
-                            góly: ${e.goals},
-                            výsledok: ${e.result},
-                            výhra: ${e.win_amount.toFixed ? e.win_amount.toFixed(2) : e.win_amount} €,
-                            nový stake: ${e.new_stake} €
-                        </div>
-                    `).join("")
-                    : "<div>Denník je prázdny</div>"
-                );
-                return `
-                    <tr class="mant-row" data-player="${encodeURIComponent(name)}">
-                        <td>${name}</td>
-                        <td>${ODDS}</td>
-                        <td>${s.stake} €</td>
-                        <td>${s.lastResult}</td>
-                        <td><button class="btn-log" data-player="${encodeURIComponent(name)}">📜</button></td>
-                    </tr>
-                    <tr class="diary-row" id="log-${encodeURIComponent(name)}" style="display:none;">
-                        <td colspan="5" style="text-align:left;">
-                            ${logHtml}
-                        </td>
-                    </tr>
-                `;
-            }).join("")}
-        </tbody>
+    const tableHtml = `
+        <table id="mantingal">
+            <thead>
+                <tr><th colspan="5">Mantingal – TOP 3 (kurz ${ODDS})</th></tr>
+                <tr><th>Hráč</th><th>Kurz</th><th>Vklad</th><th>Posledný výsledok</th><th>Denník</th></tr>
+            </thead>
+            <tbody>
+                ${currentTop3.map(([name]) => {
+                    const s = state[name] || { stake: BASE_STAKE, lastResult: "—", log: [] };
+                    const logHtml = (s.log.length
+                        ? s.log.map(e => `
+                            <div>
+                                <b>${e.date}</b> – stake: ${e.stake_before} €,
+                                góly: ${e.goals},
+                                výsledok: ${e.result},
+                                výhra: ${e.win_amount.toFixed ? e.win_amount.toFixed(2) : e.win_amount} €,
+                                nový stake: ${e.new_stake} €
+                            </div>
+                        `).join("")
+                        : "<div>Denník je prázdny</div>"
+                    );
+                    return `
+                        <tr class="mant-row" data-player="${encodeURIComponent(name)}">
+                            <td>${name}</td>
+                            <td>${ODDS}</td>
+                            <td>${s.stake} €</td>
+                            <td>${s.lastResult}</td>
+                            <td><button class="btn-log" data-player="${encodeURIComponent(name)}">📜</button></td>
+                        </tr>
+                        <tr class="diary-row" id="log-${encodeURIComponent(name)}" style="display:none;">
+                            <td colspan="5" style="text-align:left;">
+                                ${logHtml}
+                            </td>
+                        </tr>
+                    `;
+                }).join("")}
+            </tbody>
+        </table>
+        <div id="mantingal-summary">
+            <p><b>Celkové stávky</b>: ${Object.values(state).reduce((acc, s) => acc + (s.totalStakes || 0), 0).toFixed(2)} €</p>
+            <p><b>Výhry</b>: ${Object.values(state).reduce((acc, s) => acc + (s.totalWins || 0), 0).toFixed(2)} €</p>
+            <p><b>Profit</b>: ${(Object.values(state).reduce((acc, s) => acc + (s.totalWins || 0), 0) - Object.values(state).reduce((acc, s) => acc + (s.totalStakes || 0), 0)).toFixed(2)} €</p>
+        </div>
     `;
 
-    const totals = Object.values(state).reduce(
-        (acc, s) => {
-            acc.stakes += s.totalStakes || 0;
-            acc.wins += s.totalWins || 0;
-            return acc;
-        },
-        { stakes: 0, wins: 0 }
-    );
-    const profit = totals.wins - totals.stakes;
-
-    const summary = document.createElement("div");
-    summary.id = "mantingal-summary";
-    summary.innerHTML = `
-        <p><b>Celkové stávky</b>: ${totals.stakes.toFixed(2)} €</p>
-        <p><b>Výhry</b>: ${totals.wins.toFixed(2)} €</p>
-        <p><b>Profit</b>: ${profit.toFixed(2)} €</p>
-    `;
-
-    container.appendChild(table);
-    container.appendChild(summary);
-
-    table.querySelectorAll(".btn-log").forEach(btn => {
-        btn.addEventListener("click", () => {
-            const name = btn.getAttribute("data-player");
-            const row = document.getElementById(`log-${name}`);
-            if (!row) return;
-            row.style.display = row.style.display === "none" ? "" : "none";
-        });
+    [container, containerMobile].forEach(c => {
+        if (c) c.insertAdjacentHTML("beforeend", tableHtml);
     });
 }
 
-window.addEventListener("DOMContentLoaded", fetchMatches);
+// 📱 obsluha mobilného menu
+window.addEventListener("DOMContentLoaded", () => {
+    fetchMatches();
+
+    const mobileSelect = document.getElementById("mobileSelect");
+    if (mobileSelect) {
+        mobileSelect.addEventListener("change", (e) => {
+            document.querySelectorAll(".left, .middle, .right, .mantingal-mobile")
+                .forEach(div => div.classList.remove("active"));
+
+            if (e.target.value === "matches") document.querySelector(".left").classList.add("active");
+            if (e.target.value === "teams") document.querySelector(".middle").classList.add("active");
+            if (e.target.value === "players") document.querySelector(".right").classList.add("active");
+            if (e.target.value === "mantingal") document.querySelector(".mantingal-mobile").classList.add("active");
+        });
+
+        // defaultne po načítaní zobraz "Zápasy"
+        document.querySelector(".left").classList.add("active");
+    }
+});

@@ -18,12 +18,13 @@ h1 {
     display: flex;
     gap: 20px;
     justify-content: space-between;
+    flex-wrap: nowrap;
 }
 
-/* Rozloženie stĺpcov s jemne odlíšeným pozadím */
+/* PC rozloženie */
 .left {
     flex: 2.2;
-    background: #ffffff; /* čistá biela */
+    background: #ffffff;
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -31,7 +32,7 @@ h1 {
 
 .middle {
     flex: 0.9;
-    background: #f9fbfd; /* jemne modrastý odtieň */
+    background: #f9fbfd;
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -39,7 +40,15 @@ h1 {
 
 .right {
     flex: 0.9;
-    background: #fdfaf6; /* jemne béžový odtieň */
+    background: #fdfaf6;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.mantingal-mobile {
+    display: none; /* default skryté – len pre mobil */
+    background: #eef8f0;
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -117,15 +126,39 @@ tr:hover {
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
 }
 
-.stat-goal {
-    color: #d32f2f;
-    font-weight: bold;
-    font-size: 13px;
+/* 📱 mobilné menu */
+.mobile-menu {
+    display: none;
+    margin-bottom: 15px;
+    text-align: center;
 }
 
-.stat-assist {
-    color: #388e3c;
-    font-weight: bold;
-    font-size: 13px;
-    margin-left: 10px;
+.mobile-menu select {
+    padding: 8px 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 📱 mobilné zobrazenie */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .mobile-menu {
+        display: block;
+    }
+
+    .left, .middle, .right, .mantingal-mobile {
+        display: none;
+    }
+
+    .left.active,
+    .middle.active,
+    .right.active,
+    .mantingal-mobile.active {
+        display: block;
+    }
 }

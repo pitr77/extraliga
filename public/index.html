@@ -9,6 +9,16 @@
 <body>
     <h1>Slovenská hokejová Extraliga</h1>
 
+    <!-- 📱 mobilné menu -->
+    <div class="mobile-menu">
+        <select id="mobileSelect">
+            <option value="left">Zápasy</option>
+            <option value="middle">Rating tímov</option>
+            <option value="right">Rating hráčov</option>
+            <option value="mantingal-mobile">Mantingal</option>
+        </select>
+    </div>
+
     <div class="container">
         <!-- 🏒 Zápasy -->
         <div class="left">
@@ -22,9 +32,7 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- zápasy sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -38,9 +46,7 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- ratingy sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -54,13 +60,37 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- top hráči sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
+        </div>
+
+        <!-- 📒 Mantingal (len pre mobil) -->
+        <div class="mantingal-mobile">
+            <h2>Mantingal</h2>
+            <div id="mantingal-container"></div>
         </div>
     </div>
 
     <script src="app.js"></script>
+    <script>
+        // prepínanie sekcií na mobile
+        document.addEventListener("DOMContentLoaded", () => {
+            const select = document.getElementById("mobileSelect");
+            const sections = document.querySelectorAll(".left, .middle, .right, .mantingal-mobile");
+
+            function showSection(value) {
+                sections.forEach(sec => sec.classList.remove("active"));
+                const chosen = document.querySelector("." + value);
+                if (chosen) chosen.classList.add("active");
+            }
+
+            // default – zápasy
+            showSection("left");
+
+            select.addEventListener("change", () => {
+                showSection(select.value);
+            });
+        });
+    </script>
 </body>
 </html>
