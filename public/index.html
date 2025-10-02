@@ -32,9 +32,7 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- zápasy sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -48,9 +46,7 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- ratingy sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
 
@@ -64,19 +60,15 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- top hráči sa načítajú JS -->
-                </tbody>
+                <tbody></tbody>
             </table>
 
-            <!-- 💰 Mantingal (PC verzia pod hráčmi) -->
+            <!-- Mantingal sa vloží pod rating hráčov v PC -->
             <div id="mantingal-container-pc"></div>
         </div>
 
-        <!-- 💰 Mantingal (mobilná verzia – samostatná sekcia) -->
-        <div class="mantingal-mobile section" id="mantingal-container">
-            <!-- Mantingal sa načíta JS -->
-        </div>
+        <!-- 💰 Mantingal (mobilná verzia) -->
+        <div class="mantingal-mobile section" id="mantingal-container"></div>
     </div>
 
     <script src="app.js"></script>
@@ -90,6 +82,13 @@
             if (val === "teams") document.getElementById("teams-section").style.display = "block";
             if (val === "players") document.getElementById("players-section").style.display = "block";
             if (val === "mantingal") document.getElementById("mantingal-container").style.display = "block";
+        });
+
+        // default – pri štarte na mobile zobraz zápasy
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.innerWidth <= 768) {
+                document.getElementById("matches-section").style.display = "block";
+            }
         });
     </script>
 </body>
