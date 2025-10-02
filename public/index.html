@@ -12,10 +12,10 @@
     <!-- 📱 mobilné menu -->
     <div class="mobile-menu">
         <select id="mobileSelect">
-            <option value="matches-section">Zápasy</option>
-            <option value="teams-section">Rating tímov</option>
-            <option value="players-section">Rating hráčov</option>
-            <option value="mantingal-container">Mantingal</option>
+            <option value="matches">Zápasy</option>
+            <option value="teams">Rating tímov</option>
+            <option value="players">Rating hráčov</option>
+            <option value="mantingal">Mantingal</option>
         </select>
     </div>
 
@@ -32,7 +32,9 @@
                         <th>Status</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <!-- zápasy sa načítajú JS -->
+                </tbody>
             </table>
         </div>
 
@@ -46,11 +48,13 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <!-- ratingy sa načítajú JS -->
+                </tbody>
             </table>
         </div>
 
-        <!-- 🧑‍🚀 Rating hráčov -->
+        <!-- 🧑‍🚀 Rating hráčov + Mantingal (PC) -->
         <div class="right section" id="players-section">
             <h2>Rating hráčov</h2>
             <table id="playerRatings">
@@ -60,11 +64,16 @@
                         <th>Rating</th>
                     </tr>
                 </thead>
-                <tbody></tbody>
+                <tbody>
+                    <!-- top hráči sa načítajú JS -->
+                </tbody>
             </table>
+
+            <!-- 💰 Mantingal (PC verzia pod hráčmi) -->
+            <div id="mantingal-container-pc"></div>
         </div>
 
-        <!-- 💰 Mantingal -->
+        <!-- 💰 Mantingal (mobilná verzia – samostatná sekcia) -->
         <div class="mantingal-mobile section" id="mantingal-container">
             <!-- Mantingal sa načíta JS -->
         </div>
@@ -73,19 +82,14 @@
     <script src="app.js"></script>
     <script>
         // 📱 prepínanie sekcií na mobile
-        function showSection(sectionId) {
-            document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
-            const el = document.getElementById(sectionId);
-            if (el) el.classList.add("active");
-        }
-
         document.getElementById("mobileSelect").addEventListener("change", (e) => {
-            showSection(e.target.value);
-        });
+            const val = e.target.value;
+            document.querySelectorAll(".section").forEach(sec => sec.style.display = "none");
 
-        // nastavíme default = zápasy
-        document.addEventListener("DOMContentLoaded", () => {
-            showSection("matches-section");
+            if (val === "matches") document.getElementById("matches-section").style.display = "block";
+            if (val === "teams") document.getElementById("teams-section").style.display = "block";
+            if (val === "players") document.getElementById("players-section").style.display = "block";
+            if (val === "mantingal") document.getElementById("mantingal-container").style.display = "block";
         });
     </script>
 </body>

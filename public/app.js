@@ -8,7 +8,9 @@ const ODDS = 2.5;
 // 👉 API ide teraz cez Vercel serverless funkcie (/api)
 const API_BASE = "";
 
-// načítanie zápasov
+// ==========================
+// Načítanie zápasov
+// ==========================
 async function fetchMatches() {
     try {
         const response = await fetch(`${API_BASE}/api/matches`);
@@ -35,13 +37,15 @@ async function fetchMatches() {
 
         displayTeamRatings();
         displayPlayerRatings();
-        displayMantingal(); // vykreslí pre PC aj mobil
+        displayMantingal(); // PC + mobil
     } catch (err) {
         console.error("Chyba pri načítaní zápasov:", err);
     }
 }
 
-// zobrazenie zápasov
+// ==========================
+// Zobrazenie zápasov
+// ==========================
 function displayMatches(matches) {
     const tableBody = document.querySelector("#matches tbody");
     tableBody.innerHTML = "";
@@ -136,7 +140,9 @@ function displayMatches(matches) {
     });
 }
 
-// rating tímov
+// ==========================
+// Rating tímov
+// ==========================
 function displayTeamRatings() {
     const tableBody = document.querySelector("#teamRatings tbody");
     tableBody.innerHTML = "";
@@ -150,7 +156,9 @@ function displayTeamRatings() {
     });
 }
 
-// TOP 20 hráčov
+// ==========================
+// Rating hráčov
+// ==========================
 function displayPlayerRatings() {
     const tableBody = document.querySelector("#playerRatings tbody");
     tableBody.innerHTML = "";
@@ -166,25 +174,19 @@ function displayPlayerRatings() {
     });
 }
 
-/** =========================
- *  MANTINGAL – simulácia sezóny + DENNÍK
- *  =========================
- */
+// ==========================
+// Mantingal – simulácia + denník
+// ==========================
 function displayMantingal() {
-    // ⚡ vyrenderujeme Mantingal do dvoch kontajnerov:
-    const pcContainer = document.querySelector(".right"); 
-    const mobileContainer = document.getElementById("mantingal-container");
+    const pcContainer = document.getElementById("mantingal-container-pc"); // PC pod hráčmi
+    const mobileContainer = document.getElementById("mantingal-container"); // Mobile samostatne
 
     [pcContainer, mobileContainer].forEach(container => {
         if (!container) return;
 
-        // odstráň staré
-        const oldTable = container.querySelector("#mantingal");
-        const oldSummary = container.querySelector("#mantingal-summary");
-        if (oldTable) oldTable.remove();
-        if (oldSummary) oldSummary.remove();
+        // vymaž starý obsah
+        container.innerHTML = "";
 
-        // ... rovnaká logika simulácie ako doteraz ...
         const completed = (allMatches || [])
             .filter(m => m.sport_event_status && (m.sport_event_status.status === "closed" || m.sport_event_status.status === "ap"))
             .filter(m => m.statistics && m.statistics.totals && Array.isArray(m.statistics.totals.competitors))
@@ -278,66 +280,46 @@ function displayMantingal() {
                 <tr><th>Hráč</th><th>Kurz</th><th>Vklad</th><th>Posledný výsledok</th><th>Denník</th></tr>
             </thead>
             <tbody>
-                ${currentTop3.map(([name]) => {
+                ${currentTop3.map(([name], idx) => {
                     const s = state[name] || { stake: BASE_STAKE, lastResult: "—", log: [] };
+                    const logId = `log-${idx}-${container.id}`;
                     const logHtml = (s.log.length
                         ? s.log.map(e => `
                             <div>
                                 <b>${e.date}</b> – stake: ${e.stake_before} €,
                                 góly: ${e.goals},
                                 výsledok: ${e.result},
-                                výhra: ${e.win_amount.toFixed ? e.win_amount.toFixed(2) : e.win_amount} €,
+                                výhra: ${e.win_amount.toFixed(2)} €,
                                 nový stake: ${e.new_stake} €
                             </div>
                         `).join("")
                         : "<div>Denník je prázdny</div>"
                     );
                     return `
-                        <tr class="mant-row" data-player="${encodeURIComponent(name)}">
+                        <tr>
                             <td>${name}</td>
                             <td>${ODDS}</td>
                             <td>${s.stake} €</td>
                             <td>${s.lastResult}</td>
-                            <td><button class="btn-log" data-player="${encodeURIComponent(name)}">📜</button></td>
+                            <td><button class="btn-log" data-target="${logId}">📜</button></td>
                         </tr>
-                        <tr class="diary-row" id="log-${encodeURIComponent(name)}" style="display:none;">
-                            <td colspan="5" style="text-align:left;">
-                                ${logHtml}
-                            </td>
+                        <tr id="${logId}" style="display:none;">
+                            <td colspan="5">${logHtml}</td>
                         </tr>
                     `;
                 }).join("")}
             </tbody>
         `;
 
-        const totals = Object.values(state).reduce(
-            (acc, s) => {
-                acc.stakes += s.totalStakes || 0;
-                acc.wins += s.totalWins || 0;
-                return acc;
-            },
-            { stakes: 0, wins: 0 }
-        );
-        const profit = totals.wins - totals.stakes;
-
-        const summary = document.createElement("div");
-        summary.id = "mantingal-summary";
-        summary.innerHTML = `
-            <p><b>Celkové stávky</b>: ${totals.stakes.toFixed(2)} €</p>
-            <p><b>Výhry</b>: ${totals.wins.toFixed(2)} €</p>
-            <p><b>Profit</b>: ${profit.toFixed(2)} €</p>
-        `;
-
         container.appendChild(table);
-        container.appendChild(summary);
 
-        // 🔑 Event listener – oprava
+        // Event pre tlačidlá 📜
         table.querySelectorAll(".btn-log").forEach(btn => {
             btn.addEventListener("click", () => {
-                const encodedName = btn.getAttribute("data-player");
-                const row = table.querySelector(`#log-${encodedName}`);
-                if (!row) return;
-                row.style.display = row.style.display === "none" ? "" : "none";
+                const target = document.getElementById(btn.getAttribute("data-target"));
+                if (target) {
+                    target.style.display = target.style.display === "none" ? "" : "table-row";
+                }
             });
         });
     });
