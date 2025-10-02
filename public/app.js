@@ -1,4 +1,4 @@
-// app.js
+// /public/app.js
 
 let teamRatings = {};
 let playerRatings = {};
@@ -7,13 +7,13 @@ let allMatches = [];
 const BASE_STAKE = 1;
 const ODDS = 2.5;
 
-// 🔑 nastavíme IP PC namiesto localhost (funguje aj na mobile v rovnakej WiFi)
-const API_BASE = "http://192.168.100.16:3000";
+// ✅ voláme serverless API relatívne k doméne na Verceli
+const API_BASE = "";
 
 // načítanie zápasov
 async function fetchMatches() {
     try {
-        const response = await fetch(`${API_BASE}/matches`);
+        const response = await fetch(`${API_BASE}/api/matches`);
         const data = await response.json();
 
         // uložíme všetky zápasy (budeme z nich simulovať Mantingal)
@@ -81,7 +81,8 @@ function displayMatches(matches) {
             }
 
             try {
-                const endpoint = `${API_BASE}/match-details/${match.home_id}/${match.away_id}`;
+                // 🔁 teraz voláme /api/match-details?homeId=...&awayId=...
+                const endpoint = `${API_BASE}/api/match-details?homeId=${encodeURIComponent(match.home_id)}&awayId=${encodeURIComponent(match.away_id)}`;
                 const response = await fetch(endpoint);
                 const data = await response.json();
 
@@ -95,7 +96,7 @@ function displayMatches(matches) {
                 detailsCell.colSpan = 4;
 
                 // po tretinách
-                const periods = `/${(data.sport_event_status.period_scores || [])
+                const periods = `/${(data.sport_event_status?.period_scores || [])
                     .map(p => `${p.home_score}:${p.away_score}`)
                     .join("; ")}/`;
 
@@ -116,7 +117,7 @@ function displayMatches(matches) {
 
                 detailsCell.innerHTML = `
                     <div class="details-box">
-                        <h4>Skóre: ${data.sport_event_status.home_score ?? "-"} : ${data.sport_event_status.away_score ?? "-"}</h4>
+                        <h4>Skóre: ${data.sport_event_status?.home_score ?? "-"} : ${data.sport_event_status?.away_score ?? "-"}</h4>
                         <p><b>Po tretinách:</b> ${periods}</p>
                         <div class="teams-stats">
                             <div class="team-column team-home">
@@ -262,6 +263,7 @@ function displayMantingal() {
             }
         }
 
+        // po vyhodnotení dňa updatni ratingy
         for (const match of byDay[day]) {
             for (const team of match.statistics.totals.competitors) {
                 for (const p of (team.players || [])) {
@@ -272,7 +274,7 @@ function displayMantingal() {
         }
     }
 
-    // aktuálna TOP3
+    // aktuálna TOP3 (podľa globálneho playerRatings)
     const currentTop3 = Object.entries(playerRatings)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3);
