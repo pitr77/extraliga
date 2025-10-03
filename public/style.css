@@ -1,25 +1,10 @@
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
-    background: #f4f6f8;
+    background: #f4f6f8 url("hokejista.jpg") no-repeat center center fixed;
+    background-size: cover;
     color: #333;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-    position: relative; /* 🔧 potrebné pre ::before */
-    overflow-x: hidden;
-}
-
-/* 🔧 Jemné pozadie hokejistu (watermark) */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url("hokejista.jpg") no-repeat center center;
-    background-size: cover;
-    opacity: 0.08; /* priesvitnosť */
-    z-index: -1;   /* pošleme na pozadie */
 }
 
 h1 {
@@ -45,21 +30,21 @@ h1 {
 
 .left {
     flex: 2.2;
-    background: #ffffff;
+    background: #ffffffcc; /* polopriesvitné kvôli pozadiu */
 }
 
 .middle {
     flex: 0.9;
-    background: #f9fbfd;
+    background: #f9fbfdcc;
 }
 
 .right {
     flex: 0.9;
-    background: #fdfaf6;
+    background: #fdfaf6cc;
 }
 
 .mantingal-mobile {
-    background: #eef8f0;
+    background: #eef8f0cc;
     display: none; /* default skryté */
 }
 
@@ -95,7 +80,7 @@ tr:hover {
 
 /* Detaily zápasu */
 .details-box {
-    background: #ffffff;
+    background: #ffffffcc;
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -167,5 +152,23 @@ tr:hover {
     /* vybraná sekcia z menu */
     .section.active {
         display: block;
+    }
+
+    /* ✅ Mantingal tabuľka - mobilné zobrazenie */
+    #mantingal {
+        font-size: 14px;
+        width: 100%;
+        table-layout: fixed;
+        word-wrap: break-word;
+    }
+
+    #mantingal th, 
+    #mantingal td {
+        padding: 6px;
+        text-align: center;
+    }
+
+    .diary-row td {
+        white-space: normal;
     }
 }
