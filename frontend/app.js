@@ -1,5 +1,6 @@
 // app.js
 //toto je petov komentar
+//toto je Kamilov komentar
 let teamRatings = {};
 let playerRatings = {};
 let allMatches = [];
