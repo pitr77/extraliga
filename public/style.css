@@ -1,10 +1,28 @@
 body {
     font-family: Arial, sans-serif;
     margin: 20px;
-    background: #f4f6f8 url("hokejista.jpg") no-repeat center center fixed;
-    background-size: cover;
+    background: #f4f6f8;
     color: #333;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+
+    /* 📸 obrázok hokejistu ako pozadie */
+    background-image: url("hokejista.jpg");
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    position: relative;
+}
+
+/* ✅ Overlay vrstva pre jemné zatienenie pozadia */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.7); /* biely filter s 70% priehľadnosťou */
+    z-index: -1;
 }
 
 h1 {
@@ -26,25 +44,22 @@ h1 {
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    background: rgba(255, 255, 255, 0.9); /* svetlý podklad pre čitateľnosť */
 }
 
 .left {
     flex: 2.2;
-    background: #ffffffcc; /* polopriesvitné kvôli pozadiu */
 }
 
 .middle {
     flex: 0.9;
-    background: #f9fbfdcc;
 }
 
 .right {
     flex: 0.9;
-    background: #fdfaf6cc;
 }
 
 .mantingal-mobile {
-    background: #eef8f0cc;
     display: none; /* default skryté */
 }
 
@@ -80,7 +95,7 @@ tr:hover {
 
 /* Detaily zápasu */
 .details-box {
-    background: #ffffffcc;
+    background: #ffffff;
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -154,21 +169,15 @@ tr:hover {
         display: block;
     }
 
-    /* ✅ Mantingal tabuľka - mobilné zobrazenie */
+    /* ✅ Mantingal fit na šírku mobilu */
     #mantingal {
         font-size: 14px;
-        width: 100%;
-        table-layout: fixed;
-        word-wrap: break-word;
+        overflow-x: auto;
+        display: block;
     }
 
-    #mantingal th, 
-    #mantingal td {
+    #mantingal td, #mantingal th {
         padding: 6px;
-        text-align: center;
-    }
-
-    .diary-row td {
-        white-space: normal;
+        white-space: nowrap;
     }
 }
