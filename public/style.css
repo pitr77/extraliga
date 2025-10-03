@@ -4,16 +4,11 @@ body {
     background: #f4f6f8;
     color: #333;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-
-    /* 📸 obrázok hokejistu ako pozadie */
-    background-image: url("hokejista.jpg");
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
     position: relative;
+    overflow-x: hidden;
 }
 
-/* ✅ Overlay vrstva pre jemné zatienenie pozadia */
+/* Jemné pozadie hokejistu */
 body::before {
     content: "";
     position: fixed;
@@ -21,7 +16,9 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255, 255, 255, 0.7); /* biely filter s 70% priehľadnosťou */
+    background: url('hokejista.jpg') no-repeat center center fixed;
+    background-size: cover;
+    opacity: 0.15;   /* priesvitnosť pozadia */
     z-index: -1;
 }
 
@@ -44,22 +41,25 @@ h1 {
     padding: 15px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    background: rgba(255, 255, 255, 0.9); /* svetlý podklad pre čitateľnosť */
 }
 
 .left {
     flex: 2.2;
+    background: #ffffff;
 }
 
 .middle {
     flex: 0.9;
+    background: #f9fbfd;
 }
 
 .right {
     flex: 0.9;
+    background: #fdfaf6;
 }
 
 .mantingal-mobile {
+    background: #eef8f0;
     display: none; /* default skryté */
 }
 
@@ -169,15 +169,12 @@ tr:hover {
         display: block;
     }
 
-    /* ✅ Mantingal fit na šírku mobilu */
-    #mantingal {
-        font-size: 14px;
+    /* Mantingal na mobile na celú šírku */
+    #mantingal-container {
         overflow-x: auto;
-        display: block;
     }
-
-    #mantingal td, #mantingal th {
-        padding: 6px;
-        white-space: nowrap;
+    #mantingal-container table {
+        width: 100%;
+        font-size: 14px;
     }
 }
