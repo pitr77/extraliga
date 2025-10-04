@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 
 const app = express();
 const PORT = 3000;
-
+// skuska pridat nieco do kodu)
 // --- pre __dirname (v ES modules) ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
