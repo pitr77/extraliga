@@ -3,20 +3,22 @@
 import axios from "axios";
 
 const API_KEY = "WaNt9YL5305o4hT2iGrsnoxUhegUG0St1ZYcs11g";
-// iba aktuálna sezóna Extraliga 25/26
-const SEASON_ID = "sr:season:131005";
+const SEASON_ID = "sr:season:131005"; // Extraliga 25/26
 
 export default async function handler(req, res) {
   const { id } = req.query;
 
   try {
-    const url = `https://api.sportradar.com/icehockey/trial/v2/en/competitors/${id}/summaries.json?api_key=${API_KEY}`;
+    // vezmeme všetky zápasy sezóny
+    const url = `https://api.sportradar.com/icehockey/trial/v2/en/seasons/${SEASON_ID}/summaries.json?api_key=${API_KEY}`;
     const response = await axios.get(url);
 
     const summaries = response.data.summaries || [];
 
-    // ⚡ filtrovanie len na zápasy aktuálnej sezóny
-    const filtered = summaries.filter(m => m.sport_event.season?.id === SEASON_ID);
+    // filter: iba zápasy, kde hral tím
+    const filtered = summaries.filter(m =>
+      m.sport_event.competitors.some(c => c.id === id)
+    );
 
     let wins = 0, losses = 0, goalsFor = 0, goalsAgainst = 0;
 
