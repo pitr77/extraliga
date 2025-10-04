@@ -35,6 +35,15 @@ app.use(express.json());
 // 👉 sprístupní frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
+// pomocná funkcia: zoradenie zápasov
+function sortByStartTimeAsc(matches) {
+  return [...matches].sort((a, b) => {
+    const ta = new Date(a.sport_event.start_time).getTime() || 0;
+    const tb = new Date(b.sport_event.start_time).getTime() || 0;
+    return ta - tb;
+  });
+}
+
 // ====================== ENDPOINTY ======================
 
 // všetky zápasy + ratingy + Mantingal simulácia
@@ -194,7 +203,7 @@ app.get("/api/matches", async (req, res) => {
 });
 
 // detail zápasu
-app.get("/match-details/:homeId/:awayId", async (req, res) => {
+app.get("/api/match-details/:homeId/:awayId", async (req, res) => {
   try {
     const { homeId, awayId } = req.params;
     const url = `https://api.sportradar.com/icehockey/trial/v2/en/competitors/${homeId}/versus/${awayId}/summaries.json?api_key=${API_KEY}`;
@@ -212,8 +221,8 @@ app.get("/match-details/:homeId/:awayId", async (req, res) => {
   }
 });
 
-// štatistiky tímu
-app.get("/team/:competitorId", async (req, res) => {
+// nový endpoint: štatistiky tímu
+app.get("/api/team/:competitorId", async (req, res) => {
   try {
     const { competitorId } = req.params;
     const url = `https://api.sportradar.com/icehockey/trial/v2/en/competitors/${competitorId}/summaries.json?api_key=${API_KEY}`;
@@ -249,7 +258,7 @@ app.get("/team/:competitorId", async (req, res) => {
       goalsAgainst
     });
   } catch (err) {
-    console.error("Chyba /team/:id", err.message);
+    console.error("Chyba /api/team/:id", err.message);
     res.status(500).json({ error: "Chyba pri načítaní štatistík tímu" });
   }
 });
