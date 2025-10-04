@@ -86,127 +86,98 @@ async function fetchMatches() {
     const response = await fetch(`${API_BASE}/api/matches`);
     const data = await response.json();
 
-    allMatches = data.matches || [];
+    allMatches = data.rounds || []; // teraz rounds
 
-    const matches = allMatches.map(match => ({
-      home_id: match.sport_event.competitors[0].id,
-      away_id: match.sport_event.competitors[1].id,
-      home_team: match.sport_event.competitors[0].name,
-      away_team: match.sport_event.competitors[1].name,
-      home_score: match.sport_event_status.home_score,
-      away_score: match.sport_event_status.away_score,
-      status: match.sport_event_status.status,
-      overtime: match.sport_event_status.overtime,
-      ap: match.sport_event_status.ap
-    }));
-
-    displayMatches(matches);
+    displayMatchesByRounds(allMatches);
 
     teamRatings = data.teamRatings || {};
     playerRatings = data.playerRatings || {};
 
     displayTeamRatings();
     displayPlayerRatings();
-    displayMantingal(); // korektný prepočet + denník (render do PC alebo mobil kontajnera)
+    displayMantingal();
   } catch (err) {
     console.error("Chyba pri načítaní zápasov:", err);
   }
 }
 
-// ========================= Zápasy =========================
-function displayMatches(matches) {
+// ========================= Zápasy (podľa kôl) =========================
+function displayMatchesByRounds(rounds) {
   const tableBody = document.querySelector("#matches tbody");
   if (!tableBody) return;
   tableBody.innerHTML = "";
 
-  matches.forEach(match => {
-    const homeScore = match.home_score ?? "-";
-    const awayScore = match.away_score ?? "-";
+  rounds.forEach(round => {
+    // nadpis kola
+    const roundRow = document.createElement("tr");
+    roundRow.innerHTML = `<td colspan="4"><b>${round.round}. kolo (${round.date})</b></td>`;
+    tableBody.appendChild(roundRow);
 
-    const row = document.createElement("tr");
+    // zápasy v danom kole
+    round.matches.forEach(match => {
+      const homeScore = match.sport_event_status.home_score ?? "-";
+      const awayScore = match.sport_event_status.away_score ?? "-";
 
-    let statusText = "";
-    if (match.status === "closed") {
-      statusText = match.overtime || match.ap ? "✅ PP" : "✅";
-    } else if (match.status === "ap") {
-      statusText = "✅ PP";
-    } else if (match.status === "not_started") {
-      statusText = "⏳";
-    }
+      const row = document.createElement("tr");
 
-    row.innerHTML = `
-      <td>${match.home_team}</td>
-      <td>${match.away_team}</td>
-      <td>${homeScore} : ${awayScore}</td>
-      <td>${statusText}</td>
-    `;
-
-    // klik na detail (rozbalí pod riadok)
-    row.style.cursor = "pointer";
-    row.addEventListener("click", async () => {
-      const existingDetails = row.nextElementSibling;
-      if (existingDetails && existingDetails.classList.contains("details-row")) {
-        existingDetails.remove();
-        return;
+      let statusText = "";
+      if (match.sport_event_status.status === "closed") {
+        statusText = match.sport_event_status.overtime || match.sport_event_status.ap ? "✅ PP" : "✅";
+      } else if (match.sport_event_status.status === "ap") {
+        statusText = "✅ PP";
+      } else if (match.sport_event_status.status === "not_started") {
+        statusText = "⏳";
       }
 
-      try {
-        const endpoint = `${API_BASE}/api/match-details?homeId=${match.home_id}&awayId=${match.away_id}`;
-        const response = await fetch(endpoint);
-        const data = await response.json();
+      row.innerHTML = `
+        <td>${match.sport_event.competitors[0].name}</td>
+        <td>${match.sport_event.competitors[1].name}</td>
+        <td>${homeScore} : ${awayScore}</td>
+        <td>${statusText}</td>
+      `;
 
-        // odstráň iné otvorené detaily
-        document.querySelectorAll(".details-row").forEach(el => el.remove());
+      // klik na detail
+      row.style.cursor = "pointer";
+      row.addEventListener("click", async () => {
+        const existingDetails = row.nextElementSibling;
+        if (existingDetails && existingDetails.classList.contains("details-row")) {
+          existingDetails.remove();
+          return;
+        }
 
-        const detailsRow = document.createElement("tr");
-        detailsRow.classList.add("details-row");
+        try {
+          const endpoint = `${API_BASE}/api/match-details?homeId=${match.sport_event.competitors[0].id}&awayId=${match.sport_event.competitors[1].id}`;
+          const response = await fetch(endpoint);
+          const data = await response.json();
 
-        const detailsCell = document.createElement("td");
-        detailsCell.colSpan = 4;
+          document.querySelectorAll(".details-row").forEach(el => el.remove());
 
-        const periods = `/${(data.sport_event_status.period_scores || [])
-          .map(p => `${p.home_score}:${p.away_score}`)
-          .join("; ")}/`;
+          const detailsRow = document.createElement("tr");
+          detailsRow.classList.add("details-row");
 
-        const homeTeam = data.statistics?.totals?.competitors?.find?.(t => t.qualifier === "home") || { name: "Domáci", players: [] };
-        const awayTeam = data.statistics?.totals?.competitors?.find?.(t => t.qualifier === "away") || { name: "Hostia", players: [] };
+          const detailsCell = document.createElement("td");
+          detailsCell.colSpan = 4;
 
-        const formatPlayers = team =>
-          (team.players || [])
-            .filter(p => (p.statistics?.goals || 0) > 0 || (p.statistics?.assists || 0) > 0)
-            .map(p => `
-              <div class="player-line">
-                <span class="player-name">${p.name}</span> –
-                ${(p.statistics?.goals || 0)} g + ${(p.statistics?.assists || 0)} a
-              </div>
-            `)
-            .join("") || "<div class='player-line'>Žiadne góly</div>";
+          const periods = `/${(data.sport_event_status.period_scores || [])
+            .map(p => `${p.home_score}:${p.away_score}`)
+            .join("; ")}/`;
 
-        detailsCell.innerHTML = `
-          <div class="details-box">
-            <h4>Skóre: ${data.sport_event_status.home_score ?? "-"} : ${data.sport_event_status.away_score ?? "-"}</h4>
-            <p><b>Po tretinách:</b> ${periods}</p>
-            <div class="teams-stats">
-              <div class="team-column team-home">
-                <h5>${homeTeam.name}</h5>
-                ${formatPlayers(homeTeam)}
-              </div>
-              <div class="team-column team-away">
-                <h5>${awayTeam.name}</h5>
-                ${formatPlayers(awayTeam)}
-              </div>
+          detailsCell.innerHTML = `
+            <div class="details-box">
+              <h4>Skóre: ${data.sport_event_status.home_score ?? "-"} : ${data.sport_event_status.away_score ?? "-"}</h4>
+              <p><b>Po tretinách:</b> ${periods}</p>
             </div>
-          </div>
-        `;
+          `;
 
-        detailsRow.appendChild(detailsCell);
-        row.insertAdjacentElement("afterend", detailsRow);
-      } catch (err) {
-        console.error("Chyba pri načítaní detailov zápasu:", err);
-      }
+          detailsRow.appendChild(detailsCell);
+          row.insertAdjacentElement("afterend", detailsRow);
+        } catch (err) {
+          console.error("Chyba pri načítaní detailov zápasu:", err);
+        }
+      });
+
+      tableBody.appendChild(row);
     });
-
-    tableBody.appendChild(row);
   });
 }
 
