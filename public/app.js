@@ -222,7 +222,7 @@ function displayTeamRatings() {
     const row = document.createElement("tr");
     row.innerHTML = `<td>${team}</td><td>${rating}</td>`;
 
-    // 🔹 klik na riadok tímu -> načítanie štatistík
+    // klik na riadok tímu -> načítanie štatistík
     row.style.cursor = "pointer";
     row.addEventListener("click", async () => {
       const id = TEAM_IDS[team];
@@ -244,10 +244,10 @@ function displayTeamRatings() {
         detailsRow.classList.add("team-stats-row");
         detailsRow.innerHTML = `
           <td colspan="2">
-            <b>Výhry:</b> ${stats.wins}, 
-            <b>Prehry:</b> ${stats.losses}, 
-            <b>Góly za:</b> ${stats.goalsFor}, 
-            <b>Góly proti:</b> ${stats.goalsAgainst}
+            <div><b>Výhry:</b> ${stats.wins}</div>
+            <div><b>Prehry:</b> ${stats.losses}</div>
+            <div><b>Strelené góly:</b> ${stats.goalsFor}</div>
+            <div><b>Obdržané góly:</b> ${stats.goalsAgainst}</div>
           </td>
         `;
         row.insertAdjacentElement("afterend", detailsRow);
