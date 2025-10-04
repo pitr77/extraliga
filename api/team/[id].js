@@ -1,19 +1,26 @@
-// frontend/api/team/[id].js
+// api/team/[id].js
+
 import axios from "axios";
+
+const API_KEY = "WaNt9YL5305o4hT2iGrsnoxUhegUG0St1ZYcs11g";
+// iba aktuálna sezóna Extraliga 25/26
+const SEASON_ID = "sr:season:131005";
 
 export default async function handler(req, res) {
   const { id } = req.query;
-
-  const API_KEY = process.env.API_KEY || "WaNt9YL5305o4hT2iGrsnoxUhegUG0St1ZYcs11g";
 
   try {
     const url = `https://api.sportradar.com/icehockey/trial/v2/en/competitors/${id}/summaries.json?api_key=${API_KEY}`;
     const response = await axios.get(url);
 
     const summaries = response.data.summaries || [];
+
+    // ⚡ filtrovanie len na zápasy aktuálnej sezóny
+    const filtered = summaries.filter(m => m.sport_event.season?.id === SEASON_ID);
+
     let wins = 0, losses = 0, goalsFor = 0, goalsAgainst = 0;
 
-    summaries.forEach(m => {
+    filtered.forEach(m => {
       const home = m.sport_event.competitors[0];
       const away = m.sport_event.competitors[1];
       const hs = m.sport_event_status.home_score ?? 0;
@@ -33,14 +40,15 @@ export default async function handler(req, res) {
 
     res.status(200).json({
       teamId: id,
-      totalGames: summaries.length,
+      seasonId: SEASON_ID,
+      totalGames: filtered.length,
       wins,
       losses,
       goalsFor,
       goalsAgainst
     });
   } catch (err) {
-    console.error("Chyba pri /api/team/[id]:", err.message);
+    console.error("Chyba v /api/team/[id]:", err.message);
     res.status(500).json({ error: "Chyba pri načítaní štatistík tímu" });
   }
 }
