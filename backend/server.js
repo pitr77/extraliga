@@ -47,7 +47,7 @@ function sortByStartTimeAsc(matches) {
 // ====================== ENDPOINTY ======================
 
 // všetky zápasy + ratingy + Mantingal simulácia
-app.get("/api/matches", async (req, res) => {
+app.get("/matches", async (req, res) => {
   try {
     const url = `https://api.sportradar.com/icehockey/trial/v2/en/seasons/${SEASON_ID}/summaries.json?api_key=${API_KEY}`;
     const response = await axios.get(url);
@@ -203,7 +203,7 @@ app.get("/api/matches", async (req, res) => {
 });
 
 // detail zápasu
-app.get("/api/match-details/:homeId/:awayId", async (req, res) => {
+app.get("/match-details/:homeId/:awayId", async (req, res) => {
   try {
     const { homeId, awayId } = req.params;
     const url = `https://api.sportradar.com/icehockey/trial/v2/en/competitors/${homeId}/versus/${awayId}/summaries.json?api_key=${API_KEY}`;
@@ -218,48 +218,6 @@ app.get("/api/match-details/:homeId/:awayId", async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: "Chyba pri načítaní detailov zápasu" });
-  }
-});
-
-// nový endpoint: štatistiky tímu
-app.get("/api/team/:competitorId", async (req, res) => {
-  try {
-    const { competitorId } = req.params;
-    const url = `https://api.sportradar.com/icehockey/trial/v2/en/competitors/${competitorId}/summaries.json?api_key=${API_KEY}`;
-    const response = await axios.get(url);
-
-    const summaries = response.data.summaries || [];
-    let wins = 0, losses = 0, goalsFor = 0, goalsAgainst = 0;
-
-    summaries.forEach(m => {
-      const home = m.sport_event.competitors[0];
-      const away = m.sport_event.competitors[1];
-      const hs = m.sport_event_status.home_score ?? 0;
-      const as = m.sport_event_status.away_score ?? 0;
-
-      if (home.id === competitorId) {
-        goalsFor += hs;
-        goalsAgainst += as;
-        if (hs > as) wins++; else if (hs < as) losses++;
-      }
-      if (away.id === competitorId) {
-        goalsFor += as;
-        goalsAgainst += hs;
-        if (as > hs) wins++; else if (as < hs) losses++;
-      }
-    });
-
-    res.json({
-      teamId: competitorId,
-      totalGames: summaries.length,
-      wins,
-      losses,
-      goalsFor,
-      goalsAgainst
-    });
-  } catch (err) {
-    console.error("Chyba /api/team/:id", err.message);
-    res.status(500).json({ error: "Chyba pri načítaní štatistík tímu" });
   }
 });
 
