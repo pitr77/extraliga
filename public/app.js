@@ -16,6 +16,22 @@ const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
 // --- Pomocné: sanitizácia textu do id ---
 const slug = (s) => encodeURIComponent(String(s || "").toLowerCase().replace(/\s+/g, "-"));
 
+// --- Mapovanie tímov na ich Sportradar ID ---
+const TEAM_IDS = {
+  "HKM Zvolen": "sr:competitor:3924",
+  "Spisska Nova Ves": "sr:competitor:3925",
+  "Mhk 32 Liptovsky Mikulas": "sr:competitor:3926",
+  "Slovan Bratislava": "sr:competitor:3927",
+  "HK Vlci Zilina": "sr:competitor:3929",
+  "HC Kosice": "sr:competitor:3930",
+  "HK Poprad": "sr:competitor:3931",
+  "HK Dukla Trencin": "sr:competitor:3933",
+  "HK Nitra": "sr:competitor:5607",
+  "HC 05 Banska Bystrica": "sr:competitor:25008",
+  "Dukla Michalovce": "sr:competitor:122968",
+  "HC Presov": "sr:competitor:122972"
+};
+
 // --- Initial mobile sekcie (aby po načítaní bolo niečo vidieť) ---
 function setupMobileSectionsOnLoad() {
   const select = document.getElementById("mobileSelect");
@@ -70,7 +86,6 @@ async function fetchMatches() {
     const response = await fetch(`${API_BASE}/api/matches`);
     const data = await response.json();
 
-    // uložíme všetky zápasy (pre simuláciu Mantingalu)
     allMatches = data.matches || [];
 
     const matches = allMatches.map(match => ({
@@ -206,6 +221,41 @@ function displayTeamRatings() {
   sortedTeams.forEach(([team, rating]) => {
     const row = document.createElement("tr");
     row.innerHTML = `<td>${team}</td><td>${rating}</td>`;
+
+    // 🔹 klik na riadok tímu -> načítanie štatistík
+    row.style.cursor = "pointer";
+    row.addEventListener("click", async () => {
+      const id = TEAM_IDS[team];
+      if (!id) return;
+
+      const existing = row.nextElementSibling;
+      if (existing && existing.classList.contains("team-stats-row")) {
+        existing.remove();
+        return;
+      }
+
+      try {
+        const resp = await fetch(`${API_BASE}/api/team/${encodeURIComponent(id)}`);
+        const stats = await resp.json();
+
+        document.querySelectorAll(".team-stats-row").forEach(el => el.remove());
+
+        const detailsRow = document.createElement("tr");
+        detailsRow.classList.add("team-stats-row");
+        detailsRow.innerHTML = `
+          <td colspan="2">
+            <b>Výhry:</b> ${stats.wins}, 
+            <b>Prehry:</b> ${stats.losses}, 
+            <b>Góly za:</b> ${stats.goalsFor}, 
+            <b>Góly proti:</b> ${stats.goalsAgainst}
+          </td>
+        `;
+        row.insertAdjacentElement("afterend", detailsRow);
+      } catch (err) {
+        console.error("Chyba pri načítaní štatistík tímu:", err);
+      }
+    });
+
     tableBody.appendChild(row);
   });
 }

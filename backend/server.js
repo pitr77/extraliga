@@ -221,6 +221,48 @@ app.get("/match-details/:homeId/:awayId", async (req, res) => {
   }
 });
 
+// nový endpoint: štatistiky tímu
+app.get("/team/:competitorId", async (req, res) => {
+  try {
+    const { competitorId } = req.params;
+    const url = `https://api.sportradar.com/icehockey/trial/v2/en/competitors/${competitorId}/summaries.json?api_key=${API_KEY}`;
+    const response = await axios.get(url);
+
+    const summaries = response.data.summaries || [];
+    let wins = 0, losses = 0, goalsFor = 0, goalsAgainst = 0;
+
+    summaries.forEach(m => {
+      const home = m.sport_event.competitors[0];
+      const away = m.sport_event.competitors[1];
+      const hs = m.sport_event_status.home_score ?? 0;
+      const as = m.sport_event_status.away_score ?? 0;
+
+      if (home.id === competitorId) {
+        goalsFor += hs;
+        goalsAgainst += as;
+        if (hs > as) wins++; else if (hs < as) losses++;
+      }
+      if (away.id === competitorId) {
+        goalsFor += as;
+        goalsAgainst += hs;
+        if (as > hs) wins++; else if (as < hs) losses++;
+      }
+    });
+
+    res.json({
+      teamId: competitorId,
+      totalGames: summaries.length,
+      wins,
+      losses,
+      goalsFor,
+      goalsAgainst
+    });
+  } catch (err) {
+    console.error("Chyba /team/:id", err.message);
+    res.status(500).json({ error: "Chyba pri načítaní štatistík tímu" });
+  }
+});
+
 // ====================== SERVER START ======================
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server beží na http://localhost:${PORT}`);
