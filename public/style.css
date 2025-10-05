@@ -9,8 +9,8 @@
 }
 
 body {
-  background: #0c1015;
-  color: #e0e0e0;
+  background: radial-gradient(circle at top, #001f33 0%, #000814 100%);
+  color: #f0f0f0;
   line-height: 1.6;
   padding: 1rem;
 }
@@ -23,6 +23,27 @@ h1 {
   color: #00b7ff;
   margin-bottom: 1.5rem;
   text-shadow: 0 0 10px rgba(0,183,255,0.6);
+}
+
+header h1 {
+  text-align: center;
+  font-size: 2.8rem;
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 0 10px rgba(0, 234, 255, 0.7),
+               0 0 20px rgba(0, 234, 255, 0.5),
+               0 0 30px rgba(0, 234, 255, 0.3);
+  letter-spacing: 1px;
+  margin-bottom: 0.8rem;
+  font-family: "Poppins", "Segoe UI", sans-serif;
+}
+
+#matches-section h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  color: #00eaff;
+  text-shadow: 0 0 8px rgba(0, 183, 255, 0.6);
+  margin-top: 1rem;
 }
 
 /* -------------------------------
@@ -40,6 +61,24 @@ h1 {
 .section:hover {
   transform: translateY(-3px);
   box-shadow: 0 0 15px rgba(0,183,255,0.3);
+}
+
+#mobileSelect {
+  display: block;
+  margin: 0 auto 1rem auto;
+  text-align: center;
+  font-size: 1.1rem;
+  color: #00eaff;
+  background: rgba(0, 183, 255, 0.1);
+  border: 1px solid rgba(0, 234, 255, 0.4);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  text-align-last: center; /* 🔹 toto centrovanie textu v <select> */
+  box-shadow: 0 0 8px rgba(0, 234, 255, 0.2);
+}
+
+#mobileSelect option {
+  text-align: center;
 }
 
 /* -------------------------------
