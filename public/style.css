@@ -8,7 +8,14 @@
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+/* 🌍 Globálny font a farby */
+body, select, input, button, table, th, td, h1, h2, h3, p, div, span {
+  font-family: "Poppins", "Segoe UI", sans-serif;
+  color: #eaf9ff;
+  letter-spacing: 0.3px;
+}
 
 body {
   font-family: "Poppins", "Segoe UI", sans-serif;
