@@ -323,3 +323,14 @@ button:hover {
   box-shadow: 0 0 10px rgba(0, 234, 255, 0.2);
   backdrop-filter: blur(3px);
 }
+
+/* Skry nadpisy v sekciách Rating tímov a Rating hráčov */
+#teamRatings-section h2,
+#playerRatings-section h2 {
+  display: none;
+}
+
+#teamRatings h2,
+#playerRatings h2 {
+  display: none;
+}
