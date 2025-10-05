@@ -86,42 +86,46 @@ async function fetchMatches() {
     const response = await fetch(`${API_BASE}/api/matches`);
     const data = await response.json();
 
-    // 🔹 preferuj rounds (iba odohrané a zoradené kolá)
-    let matches = [];
-    if (Array.isArray(data.rounds) && data.rounds.length > 0) {
-      data.rounds.forEach(r => {
-        r.matches.forEach(m => {
-          matches.push({
-            home_id: m.sport_event.competitors[0].id,
-            away_id: m.sport_event.competitors[1].id,
-            home_team: m.sport_event.competitors[0].name,
-            away_team: m.sport_event.competitors[1].name,
-            home_score: m.sport_event_status.home_score,
-            away_score: m.sport_event_status.away_score,
-            status: m.sport_event_status.status,
-            overtime: m.sport_event_status.overtime,
-            ap: m.sport_event_status.ap,
-            round: r.round,
-            date: r.date
-          });
-        });
-      });
-    } else {
-      // 🔹 fallback ak rounds nie sú (starší backend) – doplnené o dátum!
-      matches = (data.matches || []).map(m => ({
-        home_id: m.sport_event.competitors[0].id,
-        away_id: m.sport_event.competitors[1].id,
-        home_team: m.sport_event.competitors[0].name,
-        away_team: m.sport_event.competitors[1].name,
-        home_score: m.sport_event_status.home_score,
-        away_score: m.sport_event_status.away_score,
-        status: m.sport_event_status.status,
-        overtime: m.sport_event_status.overtime,
-        ap: m.sport_event_status.ap,
-        // 🆕 pridávame dátum priamo zo začiatku zápasu
-        date: m.sport_event.start_time
-      }));
-    }
+// 🔹 preferuj rounds (iba odohrané a zoradené kolá)
+let matches = [];
+if (Array.isArray(data.rounds) && data.rounds.length > 0) {
+  // uložíme originálne objekty aj pre Mantingal
+  allMatches = data.rounds.flatMap(r => r.matches);
+
+  // zároveň vytvoríme zjednodušené pre tabuľku
+  matches = allMatches.map(m => ({
+    home_id: m.sport_event.competitors[0].id,
+    away_id: m.sport_event.competitors[1].id,
+    home_team: m.sport_event.competitors[0].name,
+    away_team: m.sport_event.competitors[1].name,
+    home_score: m.sport_event_status.home_score,
+    away_score: m.sport_event_status.away_score,
+    status: m.sport_event_status.status,
+    overtime: m.sport_event_status.overtime,
+    ap: m.sport_event_status.ap,
+    round: (() => {
+      const date = new Date(m.sport_event.start_time).toISOString().slice(0, 10);
+      const foundRound = data.rounds.find(r => r.date === date);
+      return foundRound ? foundRound.round : null;
+    })(),
+    date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
+  }));
+} else {
+  // fallback
+  allMatches = data.matches || [];
+  matches = allMatches.map(m => ({
+    home_id: m.sport_event.competitors[0].id,
+    away_id: m.sport_event.competitors[1].id,
+    home_team: m.sport_event.competitors[0].name,
+    away_team: m.sport_event.competitors[1].name,
+    home_score: m.sport_event_status.home_score,
+    away_score: m.sport_event_status.away_score,
+    status: m.sport_event_status.status,
+    overtime: m.sport_event_status.overtime,
+    ap: m.sport_event_status.ap,
+    date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
+  }));
+}
 
     // 🔹 zoradiť od posledného kola alebo najnovšieho zápasu
     matches.sort((a, b) => {
