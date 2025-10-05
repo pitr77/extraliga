@@ -35,6 +35,15 @@ app.use(express.json());
 // 👉 sprístupní frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
+// pomocná funkcia: zoradenie zápasov
+function sortByStartTimeAsc(matches) {
+  return [...matches].sort((a, b) => {
+    const ta = new Date(a.sport_event.start_time).getTime() || 0;
+    const tb = new Date(b.sport_event.start_time).getTime() || 0;
+    return ta - tb;
+  });
+}
+
 // ====================== ENDPOINTY ======================
 
 // všetky zápasy + ratingy + Mantingal simulácia
@@ -44,58 +53,53 @@ app.get("/matches", async (req, res) => {
     const response = await axios.get(url);
     let matches = response.data.summaries || [];
 
-    // ⚡ zobraz iba odohrané zápasy
+    // ⚡ filter: len odohrané zápasy
     matches = matches.filter(
-      (m) =>
+      m =>
         m?.sport_event_status?.status === "closed" ||
         m?.sport_event_status?.status === "ap"
     );
 
-    // ⚡ zoradiť od najnovších po najstaršie
-    matches.sort(
-      (a, b) =>
-        new Date(b.sport_event.start_time) - new Date(a.sport_event.start_time)
-    );
-
-    // ⚡ zoskupiť podľa dátumu (každý deň = jedno kolo)
-    const groupedByDay = {};
-    matches.forEach((m) => {
-      const day = new Date(m.sport_event.start_time)
+    // zoskupiť podľa dátumu (YYYY-MM-DD)
+    const grouped = {};
+    matches.forEach(m => {
+      const date = new Date(m.sport_event.start_time)
         .toISOString()
         .slice(0, 10);
-      if (!groupedByDay[day]) groupedByDay[day] = [];
-      groupedByDay[day].push(m);
+      if (!grouped[date]) grouped[date] = [];
+      grouped[date].push(m);
     });
 
-    // ⚡ priradiť číslovanie kôl (1 = najstaršie, n = najnovšie)
-    const days = Object.keys(groupedByDay).sort(
-      (a, b) => new Date(a) - new Date(b)
-    );
-    const rounds = days.map((day, idx) => ({
-      round: idx + 1,
-      date: day,
-      matches: groupedByDay[day],
-    }));
+    // zoradené dni od najnovšieho po najstarší
+    const days = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
 
-    // ⚡ zreťaziť všetky zápasy do jedného poľa (aby frontend nič nemusel meniť)
-    const ordered = rounds.flatMap((r) =>
-      r.matches.map((m) => ({ ...m, round: r.round, date: r.date }))
-    );
+    // pridaj čísla kôl
+    let roundCounter = days.length;
+    const rounds = [];
+    for (const day of days) {
+      grouped[day].forEach(m => {
+        m.round = roundCounter;
+        m.date = day;
+      });
+      rounds.push({ round: roundCounter, date: day, matches: grouped[day] });
+      roundCounter--;
+    }
 
-    // --- výpočty ratingov a mantingalu (nič nemeníme) ---
+    // --- výpočty ratingov a mantingalu (ako predtým) ---
+    const ordered = sortByStartTimeAsc(matches);
+
     const teamRatings = {};
     const playerRatingsById = {};
     const playerNamesById = {};
-
     const martingaleState = new Map();
     let totalStaked = 0;
     let totalReturn = 0;
 
-    const getMatchPlayers = (match) => {
+    const getMatchPlayers = match => {
       const list = [];
       const comps = match?.statistics?.totals?.competitors || [];
-      comps.forEach((team) => {
-        (team.players || []).forEach((p) => {
+      comps.forEach(team => {
+        (team.players || []).forEach(p => {
           if (p?.id) {
             playerNamesById[p.id] = p.name;
             list.push(p);
@@ -115,14 +119,14 @@ app.get("/matches", async (req, res) => {
         .map(([id]) => id);
 
       const matchPlayers = getMatchPlayers(match);
-      const playersInMatchIds = new Set(matchPlayers.map((p) => p.id));
+      const playersInMatchIds = new Set(matchPlayers.map(p => p.id));
 
-      currentTop3.forEach((pid) => {
+      currentTop3.forEach(pid => {
         if (playersInMatchIds.has(pid)) {
           if (!martingaleState.has(pid)) {
             martingaleState.set(pid, {
               stake: MANTINGALE_START_STAKE,
-              lastOutcome: null,
+              lastOutcome: null
             });
           }
           const state = martingaleState.get(pid);
@@ -131,27 +135,25 @@ app.get("/matches", async (req, res) => {
       });
 
       const goalsById = new Map();
-      matchPlayers.forEach((p) => {
+      matchPlayers.forEach(p => {
         const g = p?.statistics?.goals ?? 0;
         if (g > 0) goalsById.set(p.id, g);
       });
 
-      currentTop3.forEach((pid) => {
+      currentTop3.forEach(pid => {
         if (!playersInMatchIds.has(pid)) return;
-
         const state = martingaleState.get(pid);
         const scored = goalsById.has(pid);
-
         if (scored) {
           totalReturn += state.stake * MANTINGALE_ODDS;
           martingaleState.set(pid, {
             stake: MANTINGALE_START_STAKE,
-            lastOutcome: "win",
+            lastOutcome: "win"
           });
         } else {
           martingaleState.set(pid, {
             stake: state.stake * 2,
-            lastOutcome: "loss",
+            lastOutcome: "loss"
           });
         }
       });
@@ -179,20 +181,17 @@ app.get("/matches", async (req, res) => {
       }
 
       const comps = match?.statistics?.totals?.competitors || [];
-      comps.forEach((team) => {
-        (team.players || []).forEach((player) => {
+      comps.forEach(team => {
+        (team.players || []).forEach(player => {
           const pid = player.id;
           const name = player.name;
           if (!pid) return;
-
           playerNamesById[pid] = name;
           if (playerRatingsById[pid] == null)
             playerRatingsById[pid] = START_RATING;
-
           const g = player?.statistics?.goals ?? 0;
           const a = player?.statistics?.assists ?? 0;
-          playerRatingsById[pid] +=
-            g * PLAYER_GOAL_POINTS + a * PLAYER_ASSIST_POINTS;
+          playerRatingsById[pid] += g * PLAYER_GOAL_POINTS + a * PLAYER_ASSIST_POINTS;
         });
       });
     }
@@ -208,18 +207,17 @@ app.get("/matches", async (req, res) => {
       .slice(0, 3)
       .map(([id]) => id);
 
-    const martingaleTop3 = nowTop3Ids.map((pid) => {
-      const state =
-        martingaleState.get(pid) || {
-          stake: MANTINGALE_START_STAKE,
-          lastOutcome: null,
-        };
+    const martingaleTop3 = nowTop3Ids.map(pid => {
+      const state = martingaleState.get(pid) || {
+        stake: MANTINGALE_START_STAKE,
+        lastOutcome: null
+      };
       return {
         id: pid,
         name: playerNamesById[pid] || pid,
         stake: state.stake,
         lastOutcome: state.lastOutcome,
-        odds: MANTINGALE_ODDS,
+        odds: MANTINGALE_ODDS
       };
     });
 
@@ -227,17 +225,18 @@ app.get("/matches", async (req, res) => {
       totalStaked: Number(totalStaked.toFixed(2)),
       totalReturn: Number(totalReturn.toFixed(2)),
       profit: Number((totalReturn - totalStaked).toFixed(2)),
-      odds: MANTINGALE_ODDS,
+      odds: MANTINGALE_ODDS
     };
 
     res.json({
-      matches: ordered,
+      matches, // zachovávame, aby frontend fungoval
+      rounds, // nový formát podľa kôl
       teamRatings,
       playerRatings: playerRatingsByName,
       martingale: {
         top3: martingaleTop3,
-        summary: martingaleSummary,
-      },
+        summary: martingaleSummary
+      }
     });
   } catch (err) {
     console.error(err.message);
