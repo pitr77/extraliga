@@ -158,3 +158,36 @@ button:hover {
     font-size: 1.3rem;
   }
 }
+
+/* -------------------------------
+   NAVIGAČNÉ MENU POD NADPISOM
+----------------------------------*/
+
+#mobileSelect {
+  display: block;
+  margin: 0.8rem auto 1.5rem auto;   /* centrovanie */
+  padding: 0.7rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #00b7ff, #00eaff);
+  color: #0c1015;
+  border: none;
+  box-shadow: 0 0 10px rgba(0,183,255,0.4);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 240px;   /* šírka menu */
+}
+
+#mobileSelect:hover {
+  background: linear-gradient(135deg, #00eaff, #00b7ff);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(0,183,255,0.6);
+}
+
+#mobileSelect:focus {
+  outline: 2px solid #00eaff;
+  outline-offset: 3px;
+}
+
