@@ -137,13 +137,17 @@ if (Array.isArray(data.rounds) && data.rounds.length > 0) {
   }));
 }
 
-    // 🔹 zoradiť od posledného kola alebo najnovšieho zápasu
+        // 🔹 zoradiť od posledného kola alebo najnovšieho zápasu
     matches.sort((a, b) => {
       if (a.round && b.round) return b.round - a.round;
       return new Date(b.date) - new Date(a.date);
     });
 
-    allMatches = matches;
+    // ⚠️ zachováme pôvodné plné dáta pre Mantingal (so štatistikami)
+    // a NEPREPÍŠEME ich orezanou verziou
+    if (!allMatches || allMatches.length === 0) {
+      allMatches = data.matches || data.rounds?.flatMap(r => r.matches) || [];
+    }
 
     displayMatches(matches);
 
