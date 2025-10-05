@@ -107,7 +107,7 @@ async function fetchMatches() {
         });
       });
     } else {
-      // fallback ak rounds nie sú (starší backend)
+      // 🔹 fallback ak rounds nie sú (starší backend) – doplnené o dátum!
       matches = (data.matches || []).map(m => ({
         home_id: m.sport_event.competitors[0].id,
         away_id: m.sport_event.competitors[1].id,
@@ -117,12 +117,17 @@ async function fetchMatches() {
         away_score: m.sport_event_status.away_score,
         status: m.sport_event_status.status,
         overtime: m.sport_event_status.overtime,
-        ap: m.sport_event_status.ap
+        ap: m.sport_event_status.ap,
+        // 🆕 pridávame dátum priamo zo začiatku zápasu
+        date: m.sport_event.start_time
       }));
     }
 
-    // 🔹 zobraziť od posledného kola k prvému
-    matches.sort((a, b) => (b.round || 0) - (a.round || 0));
+    // 🔹 zoradiť od posledného kola alebo najnovšieho zápasu
+    matches.sort((a, b) => {
+      if (a.round && b.round) return b.round - a.round;
+      return new Date(b.date) - new Date(a.date);
+    });
 
     allMatches = matches;
 
@@ -138,6 +143,7 @@ async function fetchMatches() {
     console.error("Chyba pri načítaní zápasov:", err);
   }
 }
+
 
 // ========================= Zápasy =========================
 function displayMatches(matches) {
