@@ -145,33 +145,35 @@ function displayMatches(matches) {
   if (!tableBody) return;
   tableBody.innerHTML = "";
 
-  // zobraz iba odohrané zápasy
-  const completed = matches.filter(
-    m => m.status === "closed" || m.status === "ap"
-  );
+  // 🔹 iba odohrané zápasy
+  const completed = matches.filter(m => m.status === "closed" || m.status === "ap");
 
-  // zoradiť podľa kola (ak server poslal round), inak podľa dátumu
-  const sorted = completed.sort((a, b) => {
-    if (a.round && b.round) return b.round - a.round; // od posledného kola
-    return new Date(b.date) - new Date(a.date);
+  if (completed.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="4">Žiadne odohrané zápasy</td></tr>`;
+    return;
+  }
+
+  // 🔹 zoradiť od najnovšieho dátumu k najstaršiemu
+  completed.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // 🔹 zoskupiť podľa dňa zápasov (každý deň = jedno kolo)
+  const grouped = {};
+  completed.forEach(m => {
+    const day = new Date(m.date).toISOString().slice(0, 10);
+    if (!grouped[day]) grouped[day] = [];
+    grouped[day].push(m);
   });
 
-  // zoskupiť podľa kola
-  const byRound = {};
-  sorted.forEach(m => {
-    const key = m.round ? `${m.round}. kolo (${m.date})` : m.date;
-    if (!byRound[key]) byRound[key] = [];
-    byRound[key].push(m);
-  });
+  const allDays = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
 
-  Object.entries(byRound).forEach(([roundLabel, games]) => {
-    // nadpis kola
+  // 🔹 priraď číslovanie kôl (napr. 8. kolo, 7. kolo, ...)
+  allDays.forEach((day, index) => {
+    const roundNumber = allDays.length - index;
     const roundRow = document.createElement("tr");
-    roundRow.innerHTML = `<td colspan="4"><b>${roundLabel}</b></td>`;
+    roundRow.innerHTML = `<td colspan="4"><b>${roundNumber}. kolo (${day})</b></td>`;
     tableBody.appendChild(roundRow);
 
-    // zápasy v danom kole
-    games.forEach(match => {
+    grouped[day].forEach(match => {
       const homeScore = match.home_score ?? "-";
       const awayScore = match.away_score ?? "-";
 
@@ -209,6 +211,7 @@ function displayMatches(matches) {
 
           const detailsRow = document.createElement("tr");
           detailsRow.classList.add("details-row");
+
           const detailsCell = document.createElement("td");
           detailsCell.colSpan = 4;
 
@@ -222,6 +225,7 @@ function displayMatches(matches) {
               <p><b>Po tretinách:</b> ${periods}</p>
             </div>
           `;
+
           detailsRow.appendChild(detailsCell);
           row.insertAdjacentElement("afterend", detailsRow);
         } catch (err) {
@@ -233,6 +237,7 @@ function displayMatches(matches) {
     });
   });
 }
+
 
 // ========================= Rating tímov =========================
 function displayTeamRatings() {
