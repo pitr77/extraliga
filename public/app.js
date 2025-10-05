@@ -89,10 +89,20 @@ async function fetchMatches() {
 // 🔹 preferuj rounds (iba odohrané a zoradené kolá)
 let matches = [];
 if (Array.isArray(data.rounds) && data.rounds.length > 0) {
-  // uložíme originálne objekty aj pre Mantingal
+  // uložíme originálne objekty aj pre Mantingal (nie orezané)
   allMatches = data.rounds.flatMap(r => r.matches);
 
-  // zároveň vytvoríme zjednodušené pre tabuľku
+  // Mantingal potrebuje plné dáta aj so štatistikami
+  // (ak by niektorý zápas štatistiky nemal, preskočí ho s warningom)
+  const withStats = allMatches.filter(m => m.statistics && m.statistics.totals);
+
+  if (withStats.length === 0) {
+    console.warn("⚠️ Žiadne zápasy s hráčskymi štatistikami – Mantingal nebude počítať");
+  } else {
+    console.log(`✅ Načítaných ${withStats.length} zápasov so štatistikami`);
+  }
+
+  // pre tabuľku vytvoríme len zjednodušené zobrazenie
   matches = allMatches.map(m => ({
     home_id: m.sport_event.competitors[0].id,
     away_id: m.sport_event.competitors[1].id,
