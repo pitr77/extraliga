@@ -55,14 +55,29 @@ app.get("/matches", async (req, res) => {
 
     // ⚡ filter: len odohrané zápasy
     matches = matches.filter(
-      m =>
+      (m) =>
         m?.sport_event_status?.status === "closed" ||
         m?.sport_event_status?.status === "ap"
     );
 
+    // 🟢 doplň hráčske štatistiky pre každý odohraný zápas
+    const matchesWithStats = await Promise.all(
+      matches.map(async (m) => {
+        try {
+          const matchId = m.sport_event.id;
+          const detailsUrl = `https://api.sportradar.com/icehockey/trial/v2/en/sport_events/${matchId}/summary.json?api_key=${API_KEY}`;
+          const det = await axios.get(detailsUrl);
+          m.statistics = det.data.statistics;
+          return m;
+        } catch {
+          return m;
+        }
+      })
+    );
+
     // zoskupiť podľa dátumu (YYYY-MM-DD)
     const grouped = {};
-    matches.forEach(m => {
+    matchesWithStats.forEach((m) => {
       const date = new Date(m.sport_event.start_time)
         .toISOString()
         .slice(0, 10);
@@ -77,7 +92,7 @@ app.get("/matches", async (req, res) => {
     let roundCounter = days.length;
     const rounds = [];
     for (const day of days) {
-      grouped[day].forEach(m => {
+      grouped[day].forEach((m) => {
         m.round = roundCounter;
         m.date = day;
       });
@@ -85,8 +100,8 @@ app.get("/matches", async (req, res) => {
       roundCounter--;
     }
 
-    // --- výpočty ratingov a mantingalu (ako predtým) ---
-    const ordered = sortByStartTimeAsc(matches);
+    // --- výpočty ratingov a mantingalu ---
+    const ordered = sortByStartTimeAsc(matchesWithStats);
 
     const teamRatings = {};
     const playerRatingsById = {};
@@ -95,11 +110,11 @@ app.get("/matches", async (req, res) => {
     let totalStaked = 0;
     let totalReturn = 0;
 
-    const getMatchPlayers = match => {
+    const getMatchPlayers = (match) => {
       const list = [];
       const comps = match?.statistics?.totals?.competitors || [];
-      comps.forEach(team => {
-        (team.players || []).forEach(p => {
+      comps.forEach((team) => {
+        (team.players || []).forEach((p) => {
           if (p?.id) {
             playerNamesById[p.id] = p.name;
             list.push(p);
@@ -119,14 +134,14 @@ app.get("/matches", async (req, res) => {
         .map(([id]) => id);
 
       const matchPlayers = getMatchPlayers(match);
-      const playersInMatchIds = new Set(matchPlayers.map(p => p.id));
+      const playersInMatchIds = new Set(matchPlayers.map((p) => p.id));
 
-      currentTop3.forEach(pid => {
+      currentTop3.forEach((pid) => {
         if (playersInMatchIds.has(pid)) {
           if (!martingaleState.has(pid)) {
             martingaleState.set(pid, {
               stake: MANTINGALE_START_STAKE,
-              lastOutcome: null
+              lastOutcome: null,
             });
           }
           const state = martingaleState.get(pid);
@@ -135,12 +150,12 @@ app.get("/matches", async (req, res) => {
       });
 
       const goalsById = new Map();
-      matchPlayers.forEach(p => {
+      matchPlayers.forEach((p) => {
         const g = p?.statistics?.goals ?? 0;
         if (g > 0) goalsById.set(p.id, g);
       });
 
-      currentTop3.forEach(pid => {
+      currentTop3.forEach((pid) => {
         if (!playersInMatchIds.has(pid)) return;
         const state = martingaleState.get(pid);
         const scored = goalsById.has(pid);
@@ -148,12 +163,12 @@ app.get("/matches", async (req, res) => {
           totalReturn += state.stake * MANTINGALE_ODDS;
           martingaleState.set(pid, {
             stake: MANTINGALE_START_STAKE,
-            lastOutcome: "win"
+            lastOutcome: "win",
           });
         } else {
           martingaleState.set(pid, {
             stake: state.stake * 2,
-            lastOutcome: "loss"
+            lastOutcome: "loss",
           });
         }
       });
@@ -181,8 +196,8 @@ app.get("/matches", async (req, res) => {
       }
 
       const comps = match?.statistics?.totals?.competitors || [];
-      comps.forEach(team => {
-        (team.players || []).forEach(player => {
+      comps.forEach((team) => {
+        (team.players || []).forEach((player) => {
           const pid = player.id;
           const name = player.name;
           if (!pid) return;
@@ -191,7 +206,8 @@ app.get("/matches", async (req, res) => {
             playerRatingsById[pid] = START_RATING;
           const g = player?.statistics?.goals ?? 0;
           const a = player?.statistics?.assists ?? 0;
-          playerRatingsById[pid] += g * PLAYER_GOAL_POINTS + a * PLAYER_ASSIST_POINTS;
+          playerRatingsById[pid] +=
+            g * PLAYER_GOAL_POINTS + a * PLAYER_ASSIST_POINTS;
         });
       });
     }
@@ -207,17 +223,18 @@ app.get("/matches", async (req, res) => {
       .slice(0, 3)
       .map(([id]) => id);
 
-    const martingaleTop3 = nowTop3Ids.map(pid => {
-      const state = martingaleState.get(pid) || {
-        stake: MANTINGALE_START_STAKE,
-        lastOutcome: null
-      };
+    const martingaleTop3 = nowTop3Ids.map((pid) => {
+      const state =
+        martingaleState.get(pid) || {
+          stake: MANTINGALE_START_STAKE,
+          lastOutcome: null,
+        };
       return {
         id: pid,
         name: playerNamesById[pid] || pid,
         stake: state.stake,
         lastOutcome: state.lastOutcome,
-        odds: MANTINGALE_ODDS
+        odds: MANTINGALE_ODDS,
       };
     });
 
@@ -225,18 +242,18 @@ app.get("/matches", async (req, res) => {
       totalStaked: Number(totalStaked.toFixed(2)),
       totalReturn: Number(totalReturn.toFixed(2)),
       profit: Number((totalReturn - totalStaked).toFixed(2)),
-      odds: MANTINGALE_ODDS
+      odds: MANTINGALE_ODDS,
     };
 
     res.json({
-      matches, // zachovávame, aby frontend fungoval
-      rounds, // nový formát podľa kôl
+      matches: matchesWithStats, // všetky zápasy s dátami
+      rounds, // po kolách
       teamRatings,
       playerRatings: playerRatingsByName,
       martingale: {
         top3: martingaleTop3,
-        summary: martingaleSummary
-      }
+        summary: martingaleSummary,
+      },
     });
   } catch (err) {
     console.error(err.message);
@@ -259,7 +276,9 @@ app.get("/match-details/:homeId/:awayId", async (req, res) => {
     res.json(lastMeeting);
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ error: "Chyba pri načítaní detailov zápasu" });
+    res
+      .status(500)
+      .json({ error: "Chyba pri načítaní detailov zápasu" });
   }
 });
 
