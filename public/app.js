@@ -86,19 +86,45 @@ async function fetchMatches() {
     const response = await fetch(`${API_BASE}/api/matches`);
     const data = await response.json();
 
-    allMatches = data.matches || [];
+    // 🔹 preferuj rounds (iba odohrané a zoradené kolá)
+    let matches = [];
+    if (Array.isArray(data.rounds) && data.rounds.length > 0) {
+      data.rounds.forEach(r => {
+        r.matches.forEach(m => {
+          matches.push({
+            home_id: m.sport_event.competitors[0].id,
+            away_id: m.sport_event.competitors[1].id,
+            home_team: m.sport_event.competitors[0].name,
+            away_team: m.sport_event.competitors[1].name,
+            home_score: m.sport_event_status.home_score,
+            away_score: m.sport_event_status.away_score,
+            status: m.sport_event_status.status,
+            overtime: m.sport_event_status.overtime,
+            ap: m.sport_event_status.ap,
+            round: r.round,
+            date: r.date
+          });
+        });
+      });
+    } else {
+      // fallback ak rounds nie sú (starší backend)
+      matches = (data.matches || []).map(m => ({
+        home_id: m.sport_event.competitors[0].id,
+        away_id: m.sport_event.competitors[1].id,
+        home_team: m.sport_event.competitors[0].name,
+        away_team: m.sport_event.competitors[1].name,
+        home_score: m.sport_event_status.home_score,
+        away_score: m.sport_event_status.away_score,
+        status: m.sport_event_status.status,
+        overtime: m.sport_event_status.overtime,
+        ap: m.sport_event_status.ap
+      }));
+    }
 
-    const matches = allMatches.map(match => ({
-      home_id: match.sport_event.competitors[0].id,
-      away_id: match.sport_event.competitors[1].id,
-      home_team: match.sport_event.competitors[0].name,
-      away_team: match.sport_event.competitors[1].name,
-      home_score: match.sport_event_status.home_score,
-      away_score: match.sport_event_status.away_score,
-      status: match.sport_event_status.status,
-      overtime: match.sport_event_status.overtime,
-      ap: match.sport_event_status.ap
-    }));
+    // 🔹 zobraziť od posledného kola k prvému
+    matches.sort((a, b) => (b.round || 0) - (a.round || 0));
+
+    allMatches = matches;
 
     displayMatches(matches);
 
@@ -107,7 +133,7 @@ async function fetchMatches() {
 
     displayTeamRatings();
     displayPlayerRatings();
-    displayMantingal(); // korektný prepočet + denník (render do PC alebo mobil kontajnera)
+    displayMantingal();
   } catch (err) {
     console.error("Chyba pri načítaní zápasov:", err);
   }
