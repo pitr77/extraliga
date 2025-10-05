@@ -8,9 +8,14 @@
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
 body {
+  font-family: "Poppins", "Segoe UI", sans-serif;
   background: radial-gradient(circle at top, #001f33 0%, #000814 100%);
-  color: #f0f0f0;
+  color: #f2f6f8;
+  margin: 0;
+  padding: 0;
   line-height: 1.6;
   padding: 1rem;
 }
@@ -250,4 +255,64 @@ button:hover {
   letter-spacing: 0.5px;
   padding: 0.6rem 0;
   border-radius: 6px;
+}
+
+/* Vycentrovanie rating timov a rating hracov */
+#teamRatings-section h2,
+#playerRatings-section h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  color: #00eaff;
+  text-shadow: 0 0 8px rgba(0, 234, 255, 0.6);
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Rolovacie menu */
+#mobileSelect {
+  display: block;
+  margin: 0.5rem auto 1.2rem auto;
+  text-align-last: center;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #00eaff;
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 234, 255, 0.6);
+  border-radius: 10px;
+  padding: 0.6rem 1.2rem;
+  box-shadow: 0 0 15px rgba(0, 234, 255, 0.2);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+#mobileSelect:hover {
+  background: rgba(0, 255, 255, 0.15);
+  box-shadow: 0 0 20px rgba(0, 234, 255, 0.4);
+}
+
+#mobileSelect:focus {
+  outline: none;
+  border-color: #00eaff;
+  box-shadow: 0 0 25px rgba(0, 234, 255, 0.6);
+}
+
+#mobileSelect option {
+  background: #001f33;
+  color: #00eaff;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* BONUS - Jemny glow */
+#teamRatings table,
+#playerRatings table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  font-size: 1rem;
+  color: #e6faff;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 234, 255, 0.2);
+  backdrop-filter: blur(3px);
 }
