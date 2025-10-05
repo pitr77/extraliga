@@ -1,180 +1,160 @@
+/* -------------------------------
+   RESET + FONTS
+----------------------------------*/
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background: #f4f6f8;
-    color: #333;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-    position: relative;
-    overflow-x: hidden;
+  background: #0c1015;
+  color: #e0e0e0;
+  line-height: 1.6;
+  padding: 1rem;
 }
 
-/* Jemné pozadie hokejistu */
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: url('hokejista.jpg') no-repeat center center fixed;
-    background-size: cover;
-    opacity: 0.15;   /* priesvitnosť pozadia */
-    z-index: -1;
-}
-
+/* -------------------------------
+   HLAVIČKA
+----------------------------------*/
 h1 {
-    text-align: center;
-    font-size: 28px;
-    margin-bottom: 20px;
-    color: #2c3e50;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+  text-align: center;
+  color: #00b7ff;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 10px rgba(0,183,255,0.6);
 }
 
-.container {
-    display: flex;
-    gap: 20px;
-    justify-content: space-between;
+/* -------------------------------
+   SEKCIE
+----------------------------------*/
+.section {
+  background: #161b22;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Rozloženie stĺpcov */
-.left, .middle, .right, .mantingal-mobile {
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+.section:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 0 15px rgba(0,183,255,0.3);
 }
 
-.left {
-    flex: 2.2;
-    background: #ffffff;
-}
-
-.middle {
-    flex: 0.9;
-    background: #f9fbfd;
-}
-
-.right {
-    flex: 0.9;
-    background: #fdfaf6;
-}
-
-.mantingal-mobile {
-    background: #eef8f0;
-    display: none; /* default skryté */
-}
-
-h2 {
-    text-align: center;
-    margin-bottom: 15px;
-    color: #34495e;
-    font-family: "Trebuchet MS", sans-serif;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-}
-
+/* -------------------------------
+   TABUĽKY
+----------------------------------*/
 table {
-    width: 100%;
-    border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.95rem;
 }
 
 th, td {
-    padding: 8px 12px;
-    border-bottom: 1px solid #ddd;
-    text-align: center;
+  padding: 0.6rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  text-align: left;
 }
 
 th {
-    background: linear-gradient(to right, #555, #ddd);
-    font-weight: bold;
-    color: white;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+  background: #0f1419;
+  color: #00b7ff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-tr:hover {
-    background: #f9f9f9;
+tr:hover td {
+  background: rgba(0,183,255,0.05);
+  cursor: pointer;
 }
 
-/* Detaily zápasu */
+/* zvýraznenie kôl */
+tr td[colspan="4"] b {
+  display: block;
+  background: linear-gradient(90deg, #00b7ff44, transparent);
+  padding: 0.4rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+  color: #00b7ff;
+}
+
+/* -------------------------------
+   TLAČIDLÁ
+----------------------------------*/
+button {
+  background: #00b7ff;
+  color: #000;
+  border: none;
+  border-radius: 5px;
+  padding: 0.3rem 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+button:hover {
+  background: #00e0ff;
+  transform: scale(1.05);
+}
+
+/* -------------------------------
+   MANTINGAL SEKCIÁ
+----------------------------------*/
+#mantingal {
+  margin-top: 1rem;
+}
+
+#mantingal th {
+  background: #1b242f;
+  color: #00eaff;
+}
+
+#mantingal-summary-pc, 
+#mantingal-summary-mobile {
+  background: #10161d;
+  border: 1px solid rgba(0,183,255,0.3);
+  border-radius: 8px;
+  padding: 0.8rem;
+  margin-top: 1rem;
+}
+
+#mantingal-summary-pc p, 
+#mantingal-summary-mobile p {
+  margin: 0.3rem 0;
+}
+
+/* -------------------------------
+   DETAILY ZÁPASU
+----------------------------------*/
 .details-box {
-    background: #ffffff;
-    padding: 15px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    margin-top: 10px;
+  background: #10161d;
+  border-left: 3px solid #00b7ff;
+  padding: 0.7rem;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  color: #ddd;
 }
 
-.teams-stats {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 15px;
-    gap: 15px;
-}
-
-.team-column {
-    width: 48%;
-    padding: 10px;
-    border-radius: 10px;
-}
-
-.team-home {
-    background: #e3f2fd;
-}
-
-.team-away {
-    background: #fff8e1;
-}
-
-.player-line {
-    font-size: 14px;
-    margin-bottom: 6px;
-    text-align: left;
-}
-
-.player-name {
-    font-weight: bold;
-    color: #333;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-}
-
-/* 📱 mobilné menu */
-.mobile-menu {
-    display: none;
-    margin-bottom: 15px;
-    text-align: center;
-}
-
-.mobile-menu select {
-    padding: 8px 12px;
-    font-size: 16px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* 📱 mobilné zobrazenie */
+/* -------------------------------
+   RESPONSIVE
+----------------------------------*/
 @media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-    }
+  body {
+    padding: 0.5rem;
+  }
 
-    .mobile-menu {
-        display: block;
-    }
+  table {
+    font-size: 0.85rem;
+  }
 
-    .left, .middle, .right, .mantingal-mobile {
-        display: none; /* default skryté na mobile */
-    }
+  .section {
+    margin-bottom: 1rem;
+  }
 
-    /* vybraná sekcia z menu */
-    .section.active {
-        display: block;
-    }
-
-    /* Mantingal na mobile na celú šírku */
-    #mantingal-container {
-        overflow-x: auto;
-    }
-    #mantingal-container table {
-        width: 100%;
-        font-size: 14px;
-    }
+  h1 {
+    font-size: 1.3rem;
+  }
 }
