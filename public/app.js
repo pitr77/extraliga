@@ -32,6 +32,95 @@ const TEAM_IDS = {
   "HC Presov": "sr:competitor:122972"
 };
 
+// === NOVÉ: mapovanie NHL -> pôvodný „extraliga“ tvar (aby zvyšok appky ostal) ===
+function nhlTeamName(t) {
+  if (!t) return "Neznámy tím";
+  const place = t.placeName?.default || "";
+  const common = t.commonName?.default || "";
+  const combo = `${place} ${common}`.trim();
+  return combo || t.triCode || t.abbrev || "Tím";
+}
+
+function mapNhlPlayersToExtraligaPlayers(nhlSkaters = []) {
+  return nhlSkaters.map((p) => ({
+    id: p.playerId || p.id || p.slug || p.jerseyNumber || Math.random().toString(36).slice(2),
+    name: (p.playerName?.default || `${p.firstName?.default || ""} ${p.lastName?.default || ""}`.trim() || "Hráč"),
+    statistics: {
+      goals: p.goals ?? 0,
+      assists: p.assists ?? 0
+    }
+  }));
+}
+
+/**
+ * Vstup: položka z /api/matches (ktorá nesie NHL game + prípadne boxscore)
+ * Výstup: objekt v pôvodnom „extraliga“ tvare (sport_event, sport_event_status, statistics...)
+ */
+function normalizeNhlGame(game) {
+  // Stav
+  // NHL: FUT (budúci), LIVE (beží), FINAL (ukončený)
+  // Pôvodne: not_started, ap/closed
+  let status = "not_started";
+  if (game.gameState === "FINAL") status = "closed";
+  else if (game.gameState === "LIVE") status = "ap";
+
+  // Skóre
+  const homeScore = game.homeTeam?.score ?? game.boxscore?.homeTeam?.score ?? 0;
+  const awayScore = game.awayTeam?.score ?? game.boxscore?.awayTeam?.score ?? 0;
+
+  // Časy
+  const startISO = game.startTimeUTC || game.startTime || game.commence_time || new Date().toISOString();
+
+  // Štruktúra hráčov ak máme boxscore
+  const homeSkaters = game.boxscore?.playerByGameStats?.homeTeam?.skaters || [];
+  const awaySkaters = game.boxscore?.playerByGameStats?.awayTeam?.skaters || [];
+
+  // Linescore po tretinách (ak je)
+  const periodScores =
+    game.boxscore?.linescore?.periods?.map((p) => ({
+      home_score: p.home,
+      away_score: p.away
+    })) || [];
+
+  const normalized = {
+    id: game.id, // NHL gameId – použijeme pre match-details
+    sport_event: {
+      id: String(game.id || ""),
+      start_time: startISO,
+      competitors: [
+        { id: String(game.homeTeam?.id || game.homeTeam?.abbrev || "HOME"), name: nhlTeamName(game.homeTeam) },
+        { id: String(game.awayTeam?.id || game.awayTeam?.abbrev || "AWAY"), name: nhlTeamName(game.awayTeam) }
+      ]
+    },
+    sport_event_status: {
+      status,
+      home_score: homeScore,
+      away_score: awayScore,
+      overtime: false, // NHL API vieš doplniť neskôr z landing/play-by-play ak potrebuješ
+      ap: status === "ap",
+      period_scores: periodScores
+    },
+    statistics: {
+      totals: {
+        competitors: [
+          {
+            qualifier: "home",
+            name: nhlTeamName(game.homeTeam),
+            players: mapNhlPlayersToExtraligaPlayers(homeSkaters)
+          },
+          {
+            qualifier: "away",
+            name: nhlTeamName(game.awayTeam),
+            players: mapNhlPlayersToExtraligaPlayers(awaySkaters)
+          }
+        ]
+      }
+    }
+  };
+
+  return normalized;
+}
+
 // --- Initial mobile sekcie (aby po načítaní bolo niečo vidieť) ---
 function setupMobileSectionsOnLoad() {
   const select = document.getElementById("mobileSelect");
@@ -86,58 +175,65 @@ async function fetchMatches() {
     const response = await fetch(`${API_BASE}/api/matches`);
     const data = await response.json();
 
-// 🔹 preferuj rounds (iba odohrané a zoradené kolá)
-let matches = [];
-if (Array.isArray(data.rounds) && data.rounds.length > 0) {
-  // uložíme originálne objekty aj pre Mantingal (nie orezané)
-  allMatches = data.rounds.flatMap(r => r.matches);
+    // 🔹 preferuj rounds (iba odohrané a zoradené kolá)
+    let matches = [];
+    if (Array.isArray(data.rounds) && data.rounds.length > 0) {
+      // uložíme originálne objekty aj pre Mantingal (nie orezané)
+      allMatches = data.rounds.flatMap(r => r.matches);
 
-  // Mantingal potrebuje plné dáta aj so štatistikami
-  // (ak by niektorý zápas štatistiky nemal, preskočí ho s warningom)
-  const withStats = allMatches.filter(m => m.statistics && m.statistics.totals);
+      // Mantingal potrebuje plné dáta aj so štatistikami
+      // (ak by niektorý zápas štatistiky nemal, preskočí ho s warningom)
+      const withStats = allMatches.filter(m => m.statistics && m.statistics.totals);
 
-  if (withStats.length === 0) {
-    console.warn("⚠️ Žiadne zápasy s hráčskymi štatistikami – Mantingal nebude počítať");
-  } else {
-    console.log(`✅ Načítaných ${withStats.length} zápasov so štatistikami`);
-  }
+      if (withStats.length === 0) {
+        console.warn("⚠️ Žiadne zápasy s hráčskymi štatistikami – Mantingal nebude počítať");
+      } else {
+        console.log(`✅ Načítaných ${withStats.length} zápasov so štatistikami`);
+      }
 
-  // pre tabuľku vytvoríme len zjednodušené zobrazenie
-  matches = allMatches.map(m => ({
-    home_id: m.sport_event.competitors[0].id,
-    away_id: m.sport_event.competitors[1].id,
-    home_team: m.sport_event.competitors[0].name,
-    away_team: m.sport_event.competitors[1].name,
-    home_score: m.sport_event_status.home_score,
-    away_score: m.sport_event_status.away_score,
-    status: m.sport_event_status.status,
-    overtime: m.sport_event_status.overtime,
-    ap: m.sport_event_status.ap,
-    round: (() => {
-      const date = new Date(m.sport_event.start_time).toISOString().slice(0, 10);
-      const foundRound = data.rounds.find(r => r.date === date);
-      return foundRound ? foundRound.round : null;
-    })(),
-    date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
-  }));
-} else {
-  // fallback
-  allMatches = data.matches || [];
-  matches = allMatches.map(m => ({
-    home_id: m.sport_event.competitors[0].id,
-    away_id: m.sport_event.competitors[1].id,
-    home_team: m.sport_event.competitors[0].name,
-    away_team: m.sport_event.competitors[1].name,
-    home_score: m.sport_event_status.home_score,
-    away_score: m.sport_event_status.away_score,
-    status: m.sport_event_status.status,
-    overtime: m.sport_event_status.overtime,
-    ap: m.sport_event_status.ap,
-    date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
-  }));
-}
+      // pre tabuľku vytvoríme len zjednodušené zobrazenie
+      matches = allMatches.map(m => ({
+        id: m.id || m.sport_event?.id, // doplnené kvôli NHL
+        home_id: m.sport_event.competitors[0].id,
+        away_id: m.sport_event.competitors[1].id,
+        home_team: m.sport_event.competitors[0].name,
+        away_team: m.sport_event.competitors[1].name,
+        home_score: m.sport_event_status.home_score,
+        away_score: m.sport_event_status.away_score,
+        status: m.sport_event_status.status,
+        overtime: m.sport_event_status.overtime,
+        ap: m.sport_event_status.ap,
+        round: (() => {
+          const date = new Date(m.sport_event.start_time).toISOString().slice(0, 10);
+          const foundRound = data.rounds.find(r => r.date === date);
+          return foundRound ? foundRound.round : null;
+        })(),
+        date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
+      }));
+    } else {
+      // === NHL free API cesta – backend vracia data.matches (NHL tvar)
+      // Normalizuj na „extraliga“ štruktúru, aby zvyšok kódu ostal bez zmeny
+      const rawMatches = Array.isArray(data.matches) ? data.matches : [];
+      const normalized = rawMatches.map(normalizeNhlGame);
 
-        // 🔹 zoradiť od posledného kola alebo najnovšieho zápasu
+      allMatches = normalized;
+
+      matches = normalized.map(m => ({
+        id: m.id || m.sport_event?.id,
+        home_id: m.sport_event.competitors[0].id,
+        away_id: m.sport_event.competitors[1].id,
+        home_team: m.sport_event.competitors[0].name,
+        away_team: m.sport_event.competitors[1].name,
+        home_score: m.sport_event_status.home_score,
+        away_score: m.sport_event_status.away_score,
+        status: m.sport_event_status.status,
+        overtime: m.sport_event_status.overtime,
+        ap: m.sport_event_status.ap,
+        date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
+      }));
+    }
+
+    // 🔹 zoradiť od posledného kola alebo najnovšieho zápasu
     matches.sort((a, b) => {
       if (a.round && b.round) return b.round - a.round;
       return new Date(b.date) - new Date(a.date);
@@ -162,7 +258,6 @@ if (Array.isArray(data.rounds) && data.rounds.length > 0) {
   }
 }
 
-
 // ========================= Zápasy =========================
 function displayMatches(matches) {
   const tableBody = document.querySelector("#matches tbody");
@@ -170,7 +265,9 @@ function displayMatches(matches) {
   tableBody.innerHTML = "";
 
   // 🔹 iba odohrané zápasy
-  const completed = matches.filter(m => m.status === "closed" || m.status === "ap");
+  const completed = matches.filter(m =>
+    m.status === "closed" || m.status === "ap" || m.status === "final" || m.status === "FINAL"
+  );
 
   if (completed.length === 0) {
     tableBody.innerHTML = `<tr><td colspan="4">Žiadne odohrané zápasy</td></tr>`;
@@ -204,9 +301,10 @@ function displayMatches(matches) {
       const row = document.createElement("tr");
 
       let statusText = "";
-      if (match.status === "closed") {
+      const st = String(match.status || "").toLowerCase();
+      if (st === "closed" || st === "final") {
         statusText = match.overtime || match.ap ? "✅ PP" : "✅";
-      } else if (match.status === "ap") {
+      } else if (st === "ap" || st === "live") {
         statusText = "✅ PP";
       }
 
@@ -227,7 +325,8 @@ function displayMatches(matches) {
         }
 
         try {
-          const endpoint = `${API_BASE}/api/match-details?homeId=${match.home_id}&awayId=${match.away_id}`;
+          // ⬇️ NHL – id (gameId)
+          const endpoint = `${API_BASE}/api/match-details?gameId=${encodeURIComponent(match.id)}`;
           const response = await fetch(endpoint);
           const data = await response.json();
 
@@ -261,7 +360,6 @@ function displayMatches(matches) {
     });
   });
 }
-
 
 // ========================= Rating tímov =========================
 function displayTeamRatings() {
@@ -312,7 +410,6 @@ function displayTeamRatings() {
     tableBody.appendChild(row);
   });
 }
-
 
 // ========================= Rating hráčov =========================
 function displayPlayerRatings() {
