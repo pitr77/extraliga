@@ -1,76 +1,56 @@
-// api/matches.js
-import axios from "axios";
-
-const BASE_URL = "https://api-web.nhle.com/v1";
-const START_DATE = "2025-10-08"; // začiatok sezóny
-
+// /api/matches.js
 export default async function handler(req, res) {
   try {
-    let currentDate = START_DATE;
-    const allGames = [];
+    const START_DATE = "2025-10-08"; // začiatok sezóny
+    const TODAY = new Date().toISOString().slice(0, 10);
 
-    // načítaj 5 týždňov (stačí pre test)
-    for (let i = 0; i < 5; i++) {
-      const url = `${BASE_URL}/schedule/${currentDate}`;
-      const resp = await axios.get(url);
-      const data = resp.data;
-      if (data?.gameWeek) {
-        data.gameWeek.forEach((week) => {
-          if (Array.isArray(week.games)) {
-            allGames.push(...week.games);
-          }
-        });
-      }
-      if (!data.nextStartDate || data.nextStartDate === currentDate) break;
-      currentDate = data.nextStartDate;
+    const formatDate = (d) => {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const dateRange = [];
+    for (let d = new Date(START_DATE); d <= new Date(TODAY); d.setDate(d.getDate() + 1)) {
+      dateRange.push(formatDate(new Date(d)));
     }
 
-    // filtrovanie odohratých zápasov
-    const completed = allGames.filter(
-      (g) => g.gameState === "OFF" || g.gameState === "FINAL"
-    );
+    const allMatches = [];
 
-    // premapovanie pre frontend
-    const normalized = completed.map((g) => ({
-      sport_event: {
-        id: g.id,
-        start_time: g.startTimeUTC,
-        competitors: [
-          { name: `${g.homeTeam.placeName.default} ${g.homeTeam.commonName.default}` },
-          { name: `${g.awayTeam.placeName.default} ${g.awayTeam.commonName.default}` },
-        ],
-      },
-      sport_event_status: {
-        status: "closed",
-        home_score: g.homeTeam.score,
-        away_score: g.awayTeam.score,
-      },
-    }));
+    for (const day of dateRange) {
+      const url = `https://api-web.nhle.com/v1/score/${day}`;
+      const resp = await fetch(url);
+      if (!resp.ok) continue;
+      const data = await resp.json();
 
-    // výpočet ratingov tímov (len orientačný)
-    const teamRatings = {};
-    normalized.forEach((m) => {
-      const home = m.sport_event.competitors[0].name;
-      const away = m.sport_event.competitors[1].name;
-      const hs = m.sport_event_status.home_score;
-      const as_ = m.sport_event_status.away_score;
+      const games = data.games || [];
+      for (const g of games) {
+        const state = (g.gameState || "").toUpperCase();
+        if (state === "FINAL" || state === "LIVE") {
+          allMatches.push({
+            id: g.id,
+            date: day,
+            status: state === "FINAL" ? "closed" : "ap",
+            home_team: g.homeTeam.name.default,
+            away_team: g.awayTeam.name.default,
+            home_score: g.homeTeam.score,
+            away_score: g.awayTeam.score,
+            start_time: g.startTimeUTC,
+          });
+        }
+      }
+    }
 
-      if (!teamRatings[home]) teamRatings[home] = 1500;
-      if (!teamRatings[away]) teamRatings[away] = 1500;
+    console.log(`✅ Načítaných ${allMatches.length} zápasov s výsledkami`);
 
-      teamRatings[home] += (hs - as_) * 10;
-      teamRatings[away] += (as_ - hs) * 10;
-    });
-
-    // odpoveď pre frontend
     res.status(200).json({
-      matches: normalized,
-      teamRatings,
+      matches: allMatches,
+      teamRatings: {},
       playerRatings: {},
-      martingale: {},
     });
   } catch (err) {
-    console.error("❌ Chyba pri načítaní NHL dát:", err.message);
+    console.error("❌ Chyba pri fetchnutí NHL skóre:", err);
     res.status(500).json({ error: err.message });
   }
 }
