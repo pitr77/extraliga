@@ -265,9 +265,11 @@ function displayMatches(matches) {
   tableBody.innerHTML = "";
 
   // 🔹 iba odohrané zápasy
-  const completed = matches.filter(m =>
-    m.status === "closed" || m.status === "ap" || m.status === "final" || m.status === "FINAL"
-  );
+  const completed = matches.filter(m => {
+  const st = String(m.status || "").toUpperCase();
+  return ["CLOSED", "AP", "FINAL", "OFF"].includes(st);
+});
+
 
   if (completed.length === 0) {
     tableBody.innerHTML = `<tr><td colspan="4">Žiadne odohrané zápasy</td></tr>`;
