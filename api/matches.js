@@ -1,81 +1,73 @@
 // api/matches.js
 import axios from "axios";
 
-const BASE = "https://api-web.nhle.com/v1";
+const BASE_URL = "https://api-web.nhle.com/v1";
+const START_DATE = "2025-10-08"; // začiatok aktuálnej sezóny
+
+// jednoduché váhy na rating
 const START_RATING = 1500;
-const GOAL_POINTS = 10;
+const GOAL_POINTS = 20;
 const WIN_POINTS = 10;
 const LOSS_POINTS = -10;
 
 export default async function handler(req, res) {
   try {
-    // 1️⃣ načítaj kalendár – týždne / dni s udalosťami
-    const calRes = await axios.get(`${BASE}/schedule-calendar/now`);
-    const weeks = calRes.data?.gameWeek || [];
-
-    const datesWithGames = [];
-    for (const w of weeks) {
-      if (Array.isArray(w.games)) {
-        // všetky dni s games v tomto týždni
-        datesWithGames.push(w.date);
-        // niektoré tímy môžu mať viac dní v týždni
-      }
-    }
-
-    // ak žiadne dni
-    if (datesWithGames.length === 0) {
-      return res.status(200).json({ matches: [], teamRatings: {}, playerRatings: {}, martingale: {} });
-    }
-
+    let currentDate = START_DATE;
     const allGames = [];
 
-    // 2️⃣ pre každý dátum s hrou načítaj schedule/{date}
-    for (const d of datesWithGames) {
-      try {
-        const resp = await axios.get(`${BASE}/schedule/${d}`);
-        const gWeeks = resp.data?.gameWeek || [];
-        for (const gw of gWeeks) {
-          if (Array.isArray(gw.games)) {
-            allGames.push(...gw.games);
+    // ťaháme po týždňoch (NHL API vráti aj nextStartDate)
+    for (let i = 0; i < 8; i++) { // max 8 týždňov, aby sme nešli donekonečna
+      const url = `${BASE_URL}/schedule/${currentDate}`;
+      console.log("🔹 Načítavam:", url);
+      const resp = await axios.get(url);
+      const data = resp.data;
+
+      if (data?.gameWeek) {
+        data.gameWeek.forEach(week => {
+          if (Array.isArray(week.games)) {
+            allGames.push(...week.games);
           }
-        }
-      } catch (e) {
-        console.warn("Nepodarilo sa načítať schedule pre", d);
+        });
       }
+
+      if (!data.nextStartDate || data.nextStartDate === currentDate) break;
+      currentDate = data.nextStartDate;
     }
 
-    // 3️⃣ filter – zápasy, ktoré už boli (state FINAL alebo OFF)
-    const completed = allGames.filter(g => g.gameState === "FINAL" || g.gameState === "OFF");
-
-    // 4️⃣ ak nič, vráti prázdny
-    if (completed.length === 0) {
+    if (allGames.length === 0) {
       return res.status(200).json({ matches: [], teamRatings: {}, playerRatings: {}, martingale: {} });
     }
 
-    // 5️⃣ rating tímov (zjednodušene)
+    // filtrovanie ukončených zápasov
+    const completed = allGames.filter(g => g.gameState === "OFF" || g.gameState === "FINAL");
+
+    // rating tímov
     const teamRatings = {};
-    for (const g of completed) {
-      const h = g.homeTeam?.abbrev;
-      const a = g.awayTeam?.abbrev;
+    completed.forEach(g => {
+      const home = g.homeTeam?.abbrev;
+      const away = g.awayTeam?.abbrev;
       const hs = g.homeTeam?.score ?? 0;
       const as_ = g.awayTeam?.score ?? 0;
-      if (!teamRatings[h]) teamRatings[h] = START_RATING;
-      if (!teamRatings[a]) teamRatings[a] = START_RATING;
-      teamRatings[h] += (hs - as_) * GOAL_POINTS;
-      teamRatings[a] += (as_ - hs) * GOAL_POINTS;
-      if (hs > as_) {
-        teamRatings[h] += WIN_POINTS;
-        teamRatings[a] += LOSS_POINTS;
-      } else if (as_ > hs) {
-        teamRatings[a] += WIN_POINTS;
-        teamRatings[h] += LOSS_POINTS;
-      }
-    }
 
-    // zorad podľa dátumu klesajúco
+      if (!teamRatings[home]) teamRatings[home] = START_RATING;
+      if (!teamRatings[away]) teamRatings[away] = START_RATING;
+
+      teamRatings[home] += (hs - as_) * GOAL_POINTS;
+      teamRatings[away] += (as_ - hs) * GOAL_POINTS;
+
+      if (hs > as_) {
+        teamRatings[home] += WIN_POINTS;
+        teamRatings[away] += LOSS_POINTS;
+      } else if (as_ > hs) {
+        teamRatings[away] += WIN_POINTS;
+        teamRatings[home] += LOSS_POINTS;
+      }
+    });
+
+    // zoradené zápasy podľa dátumu
     completed.sort((a, b) => new Date(b.startTimeUTC) - new Date(a.startTimeUTC));
 
-    // 6️⃣ vráť JSON
+    // výsledná odpoveď
     res.status(200).json({
       matches: completed,
       teamRatings,
@@ -83,7 +75,7 @@ export default async function handler(req, res) {
       martingale: {}
     });
   } catch (err) {
-    console.error("❌ Chyba v matches API:", err.message);
-    res.status(500).json({ error: "Backend error" });
+    console.error("❌ Chyba v NHL matches handleri:", err.message);
+    res.status(500).json({ error: err.message });
   }
 }
