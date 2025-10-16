@@ -8,6 +8,7 @@ const BASE_STAKE = 1;
 const ODDS = 2.5;
 
 // API cez Vercel serverless funkcie (/api)
+// (Nepoužijeme – ideme priamo na NHL API, aby si hneď videl zápasy.)
 const API_BASE = "";
 
 // --- Pomocné: detekcia mobilu / desktopu ---
@@ -69,7 +70,7 @@ function normalizeNhlGame(game) {
   // Časy
   const startISO = game.startTimeUTC || game.startTime || game.commence_time || new Date().toISOString();
 
-  // Hráči
+  // Hráči (neťaháme boxscore, aby to bolo rýchle; placeholdery ostávajú)
   const homeSkaters = game.boxscore?.playerByGameStats?.homeTeam?.skaters || [];
   const awaySkaters = game.boxscore?.playerByGameStats?.awayTeam?.skaters || [];
 
@@ -153,19 +154,111 @@ function setupMobileSectionsOnLoad() {
   });
 }
 
-// ========================= API načítanie =========================
+// ========================= Pomocné: dátumy =========================
+const START_DATE = "2025-10-08"; // prvý deň sezóny, ktorý chceš
+function formatDate(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function* dateRange(from, to) {
+  const start = new Date(from);
+  const end = new Date(to);
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    yield formatDate(d);
+  }
+}
+
+// ========================= API načítanie – NHL priamo =========================
+async function fetchScheduleByDate(dateStr) {
+  const url = `https://api-web.nhle.com/v1/schedule/${dateStr}`;
+  const resp = await fetch(url, { headers: { "accept": "application/json" } });
+  if (!resp.ok) throw new Error(`NHL schedule ${dateStr} HTTP ${resp.status}`);
+  return resp.json();
+}
+
+async function fetchAllSince(startDate) {
+  const today = new Date();
+  const todayStr = formatDate(today);
+
+  const outGames = [];
+  for (const day of dateRange(startDate, todayStr)) {
+    try {
+      const data = await fetchScheduleByDate(day);
+      const groups = Array.isArray(data.gameWeek) ? data.gameWeek : [];
+      groups.forEach(g => {
+        const games = Array.isArray(g.games) ? g.games : [];
+        games.forEach(game => {
+          // berieme len ukončené alebo live – aby si niečo videl
+          const st = String(game.gameState || "").toUpperCase();
+          if (["FINAL", "OFF", "COMPLETE", "POST", "LIVE", "IN_PROGRESS"].includes(st)) {
+            // pridaj aj "date" pole, nech vieme radiť a zoskupovať
+            outGames.push({ ...game, _day: g.date || day });
+          }
+        });
+      });
+    } catch (e) {
+      console.warn(`Deň ${day}: nepodarilo sa načítať (${e.message})`);
+    }
+  }
+  return outGames;
+}
+
+function computeTeamRatingsFromMatches(normalizedMatches) {
+  const START_RATING = 1500;
+  const GOAL_POINTS = 10;
+  const WIN_POINTS = 10;
+  const LOSS_POINTS = -10;
+
+  const ratings = {};
+  const ensure = (team) => {
+    if (ratings[team] == null) ratings[team] = START_RATING;
+  };
+
+  // prechádzame len ukončené zápasy
+  const done = normalizedMatches.filter(m => {
+    const st = String(m.sport_event_status?.status || "").toLowerCase();
+    return st === "closed" || st === "ap";
+  });
+
+  done.forEach(m => {
+    const home = m.sport_event.competitors[0].name;
+    const away = m.sport_event.competitors[1].name;
+    const hs = m.sport_event_status.home_score ?? 0;
+    const as = m.sport_event_status.away_score ?? 0;
+
+    ensure(home); ensure(away);
+
+    ratings[home] += hs * GOAL_POINTS - as * GOAL_POINTS;
+    ratings[away] += as * GOAL_POINTS - hs * GOAL_POINTS;
+
+    if (hs > as) {
+      ratings[home] += WIN_POINTS;
+      ratings[away] += LOSS_POINTS;
+    } else if (as > hs) {
+      ratings[away] += WIN_POINTS;
+      ratings[home] += LOSS_POINTS;
+    }
+  });
+
+  return ratings;
+}
+
+// ========================= fetchMatches =========================
 async function fetchMatches() {
   try {
-    const response = await fetch(`${API_BASE}/api/matches`);
-    const data = await response.json();
-    console.log("✅ FETCH DATA:", data);
+    // 1) Stiahnuť všetky dni od START_DATE do dnes
+    const games = await fetchAllSince(START_DATE);
 
-    let matches = [];
-    const rawMatches = Array.isArray(data.matches) ? data.matches : [];
-    const normalized = rawMatches.map(normalizeNhlGame);
+    // 2) Normalizácia na tvoj „extraliga“ formát
+    const normalized = games.map(normalizeNhlGame);
 
+    // 3) Uložiť pre Mantingal a tabuľku
     allMatches = normalized;
-    matches = normalized.map(m => ({
+
+    // 4) Zoznam pre tabuľku (len to, čo potrebuje render)
+    let matches = normalized.map(m => ({
       id: m.id || m.sport_event?.id,
       home_id: m.sport_event.competitors[0].id,
       away_id: m.sport_event.competitors[1].id,
@@ -179,11 +272,17 @@ async function fetchMatches() {
       date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
     }));
 
+    // 5) Zoradiť od najnovšieho
     matches.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+    // 6) Team ratingy z výsledkov
+    teamRatings = computeTeamRatingsFromMatches(normalized);
+
+    // 7) (Voliteľné) Player ratings & mantingal – momentálne prázdne, kým nedotiahneme boxscore
+    playerRatings = {}; // doplníme keď pripojíme boxscore
+
+    // 8) Render
     displayMatches(matches);
-    teamRatings = data.teamRatings || {};
-    playerRatings = data.playerRatings || {};
     displayTeamRatings();
     displayPlayerRatings();
     displayMantingal();
@@ -209,12 +308,15 @@ function displayMatches(matches) {
   }
 
   completed.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // zoskupiť podľa dňa
   const grouped = {};
   completed.forEach(m => {
     const day = new Date(m.date).toISOString().slice(0, 10);
     if (!grouped[day]) grouped[day] = [];
     grouped[day].push(m);
   });
+
   const allDays = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
 
   allDays.forEach((day, index) => {
@@ -226,6 +328,7 @@ function displayMatches(matches) {
     grouped[day].forEach(match => {
       const homeScore = match.home_score ?? "-";
       const awayScore = match.away_score ?? "-";
+
       const row = document.createElement("tr");
       const st = String(match.status || "").toLowerCase();
       let statusText = "";
@@ -239,7 +342,6 @@ function displayMatches(matches) {
         <td>${statusText}</td>
       `;
 
-      row.style.cursor = "pointer";
       tableBody.appendChild(row);
     });
   });
@@ -250,6 +352,7 @@ function displayTeamRatings() {
   const tableBody = document.querySelector("#teamRatings tbody");
   if (!tableBody) return;
   tableBody.innerHTML = "";
+
   const sortedTeams = Object.entries(teamRatings).sort((a, b) => b[1] - a[1]);
   sortedTeams.forEach(([team, rating]) => {
     const row = document.createElement("tr");
@@ -263,9 +366,18 @@ function displayPlayerRatings() {
   const tableBody = document.querySelector("#playerRatings tbody");
   if (!tableBody) return;
   tableBody.innerHTML = "";
+
   const sortedPlayers = Object.entries(playerRatings)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 20);
+
+  if (sortedPlayers.length === 0) {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td colspan="2">Bez dát (boxscore sa ešte nepripája)</td>`;
+    tableBody.appendChild(row);
+    return;
+  }
+
   sortedPlayers.forEach(([player, rating]) => {
     const row = document.createElement("tr");
     row.innerHTML = `<td>${player}</td><td>${rating}</td>`;
@@ -273,27 +385,57 @@ function displayPlayerRatings() {
   });
 }
 
-// ========================= Mantingal =========================
+/** ============================================================
+ *  MANTINGAL – nechávam render a štruktúru, ale bez boxscore je zatiaľ prázdny.
+ *  Keď dopojíme boxscore (players/goals), tento blok začne plniť denník.
+ *  ============================================================ */
 function displayMantingal() {
   const pcWrapper = document.querySelector("#players-section");
   const mobileWrapper = document.getElementById("mantingal-container");
-  if (pcWrapper) pcWrapper.innerHTML = "";
-  if (mobileWrapper) mobileWrapper.innerHTML = "";
 
-  const container = document.createElement("div");
-  container.innerHTML = `
-    <table id="mantingal">
+  if (pcWrapper) {
+    const oldPc = pcWrapper.querySelector("#mantingal-wrapper-pc");
+    if (oldPc) oldPc.remove();
+  }
+  if (mobileWrapper) {
+    mobileWrapper.innerHTML = "";
+  }
+
+  const buildMantingalNode = (context) => {
+    const container = document.createElement("div");
+    container.id = context === "pc" ? "mantingal-wrapper-pc" : "mantingal-wrapper-mobile";
+
+    const table = document.createElement("table");
+    table.id = "mantingal";
+    table.innerHTML = `
       <thead>
         <tr><th colspan="5">Mantingal – TOP 3 (kurz ${ODDS})</th></tr>
         <tr><th>Hráč</th><th>Kurz</th><th>Vklad</th><th>Posledný výsledok</th><th>Denník</th></tr>
       </thead>
       <tbody>
-        <tr><td colspan="5">Simulácia sa načíta po dátach...</td></tr>
+        <tr><td colspan="5">Mantingal čaká na boxscore (hráčske góly). Zápasy už bežia OK.</td></tr>
       </tbody>
-    </table>
-  `;
-  if (isMobile()) mobileWrapper?.appendChild(container);
-  else pcWrapper?.appendChild(container);
+    `;
+
+    const summary = document.createElement("div");
+    summary.id = context === "pc" ? "mantingal-summary-pc" : "mantingal-summary-mobile";
+    summary.innerHTML = `
+      <p><b>Celkové stávky</b>: 0.00 €</p>
+      <p><b>Výhry</b>: 0.00 €</p>
+      <p><b>Profit</b>: 0.00 €</p>
+    `;
+
+    container.appendChild(table);
+    container.appendChild(summary);
+    return container;
+  };
+
+  if (isMobile()) {
+    mobileWrapper?.appendChild(buildMantingalNode("mobile"));
+  } else {
+    const pcNode = buildMantingalNode("pc");
+    document.querySelector("#players-section")?.appendChild(pcNode);
+  }
 }
 
 // ========================= START =========================
