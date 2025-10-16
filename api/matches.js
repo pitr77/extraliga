@@ -1,68 +1,50 @@
+// api/matches.js
 import axios from "axios";
 
-// NHL API – bez potreby API key
-const BASE_URL = "https://api-web.nhle.com/v1";
-
+// rating – tímy
 const START_RATING = 1500;
 const GOAL_POINTS = 10;
 const WIN_POINTS = 10;
 const LOSS_POINTS = -10;
+
+// rating – hráči
 const PLAYER_GOAL_POINTS = 20;
 const PLAYER_ASSIST_POINTS = 10;
+
+// Mantingal
 const MANTINGALE_ODDS = 2.5;
 const MANTINGALE_START_STAKE = 1;
 
-// Pomocná funkcia na generovanie dátumov od začiatku sezóny po dnes
-function getDateRange(start, end) {
-  const dates = [];
-  const current = new Date(start);
-  while (current <= end) {
-    dates.push(current.toISOString().slice(0, 10));
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-}
-
 export default async function handler(req, res) {
   try {
-    const startDate = new Date("2025-10-08");
-    const endDate = new Date();
-    const dateList = getDateRange(startDate, endDate);
+    // 1️⃣ načítaj všetky dátumy zo zápasového kalendára
+    const calendarUrl = "https://api-web.nhle.com/v1/schedule-calendar/now";
+    const calRes = await axios.get(calendarUrl);
+    const dates = (calRes.data?.gameWeek || [])
+      .flatMap(week => week.games.map(g => g.startTimeUTC.slice(0, 10)))
+      .filter((v, i, a) => a.indexOf(v) === i);
 
-    let allGames = [];
+    if (!dates.length) {
+      return res.json({ matches: [], teamRatings: {}, playerRatings: {}, martingale: {} });
+    }
 
-    // 1️⃣ načítame všetky zápasy od začiatku sezóny
-    for (const date of dateList) {
-      try {
-        const url = `${BASE_URL}/schedule/${date}`;
-        const resp = await axios.get(url);
-        const games = resp.data?.gameWeek?.[0]?.games || [];
-        const played = games.filter((g) => g.gameState === "FINAL");
-        allGames.push(...played);
-      } catch (err) {
-        // ak pre daný deň nie sú zápasy, pokračujeme
-        continue;
+    // 2️⃣ pre každý dátum zober zápasy
+    const allGames = [];
+    for (const date of dates) {
+      const scoreUrl = `https://api-web.nhle.com/v1/score/${date}`;
+      const scoreRes = await axios.get(scoreUrl);
+      if (Array.isArray(scoreRes.data.games)) {
+        allGames.push(...scoreRes.data.games);
       }
     }
 
-    // 2️⃣ pre každý zápas načítame boxscore
-    const matchesWithStats = await Promise.all(
-      allGames.map(async (game) => {
-        try {
-          const gameId = game.id;
-          const detailUrl = `${BASE_URL}/gamecenter/${gameId}/boxscore`;
-          const det = await axios.get(detailUrl);
-          return {
-            ...game,
-            boxscore: det.data,
-          };
-        } catch {
-          return game;
-        }
-      })
-    );
+    // 3️⃣ vyber len ukončené zápasy
+    const completed = allGames.filter(g => g.gameState === "OFF" || g.gameState === "FINAL");
+    if (completed.length === 0) {
+      return res.json({ matches: [], teamRatings: {}, playerRatings: {}, martingale: {} });
+    }
 
-    // 3️⃣ výpočty ratingov
+    // 4️⃣ Výpočet ratingov a mantingalu
     const teamRatings = {};
     const playerRatingsById = {};
     const playerNamesById = {};
@@ -70,111 +52,96 @@ export default async function handler(req, res) {
     let totalStaked = 0;
     let totalReturn = 0;
 
-    for (const game of matchesWithStats) {
-      const homeTeam = game.homeTeam;
-      const awayTeam = game.awayTeam;
-      const homeName = homeTeam.placeName.default + " " + homeTeam.commonName.default;
-      const awayName = awayTeam.placeName.default + " " + awayTeam.commonName.default;
-      const homeScore = game.homeTeam.score ?? 0;
-      const awayScore = game.awayTeam.score ?? 0;
+    for (const game of completed) {
+      const home = game.homeTeam?.abbrev || "HOME";
+      const away = game.awayTeam?.abbrev || "AWAY";
+      const homeScore = game.homeTeam?.score ?? 0;
+      const awayScore = game.awayTeam?.score ?? 0;
 
-      if (!teamRatings[homeName]) teamRatings[homeName] = START_RATING;
-      if (!teamRatings[awayName]) teamRatings[awayName] = START_RATING;
+      if (!teamRatings[home]) teamRatings[home] = START_RATING;
+      if (!teamRatings[away]) teamRatings[away] = START_RATING;
 
-      teamRatings[homeName] += homeScore * GOAL_POINTS - awayScore * GOAL_POINTS;
-      teamRatings[awayName] += awayScore * GOAL_POINTS - homeScore * GOAL_POINTS;
+      teamRatings[home] += homeScore * GOAL_POINTS - awayScore * GOAL_POINTS;
+      teamRatings[away] += awayScore * GOAL_POINTS - homeScore * GOAL_POINTS;
 
       if (homeScore > awayScore) {
-        teamRatings[homeName] += WIN_POINTS;
-        teamRatings[awayName] += LOSS_POINTS;
+        teamRatings[home] += WIN_POINTS;
+        teamRatings[away] += LOSS_POINTS;
       } else if (awayScore > homeScore) {
-        teamRatings[awayName] += WIN_POINTS;
-        teamRatings[homeName] += LOSS_POINTS;
+        teamRatings[away] += WIN_POINTS;
+        teamRatings[home] += LOSS_POINTS;
       }
 
-      // 🔹 hráči – boxscore
-      const playersHome = game.boxscore?.playerByGameStats?.homeTeam?.skaters || [];
-      const playersAway = game.boxscore?.playerByGameStats?.awayTeam?.skaters || [];
-      const allPlayers = [...playersHome, ...playersAway];
+      // 🟢 načítaj podrobnosti (boxscore) pre rating hráčov
+      try {
+        const boxUrl = `https://api-web.nhle.com/v1/gamecenter/${game.id}/boxscore`;
+        const boxRes = await axios.get(boxUrl);
+        const players = [
+          ...(boxRes.data.homeTeam?.players || []),
+          ...(boxRes.data.awayTeam?.players || [])
+        ];
 
-      for (const p of allPlayers) {
-        const pid = p.playerId;
-        const name = p.playerName?.default;
-        const g = p.goals ?? 0;
-        const a = p.assists ?? 0;
+        players.forEach(p => {
+          const id = p.playerId;
+          const name = p.firstName?.default + " " + p.lastName?.default;
+          playerNamesById[id] = name;
+          if (!playerRatingsById[id]) playerRatingsById[id] = START_RATING;
+          const goals = p?.stat?.goals || 0;
+          const assists = p?.stat?.assists || 0;
+          playerRatingsById[id] += goals * PLAYER_GOAL_POINTS + assists * PLAYER_ASSIST_POINTS;
+        });
 
-        if (!pid) continue;
-        playerNamesById[pid] = name;
-        if (playerRatingsById[pid] == null) playerRatingsById[pid] = START_RATING;
-        playerRatingsById[pid] += g * PLAYER_GOAL_POINTS + a * PLAYER_ASSIST_POINTS;
-      }
+        // Mantingal simulácia
+        const currentTop3 = Object.entries(playerRatingsById)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([id]) => id);
 
-      // 🔹 Mantingal simulácia (TOP 3)
-      const currentTop3 = Object.entries(playerRatingsById)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([id]) => id);
+        currentTop3.forEach(pid => {
+          if (!martingaleState.has(pid)) {
+            martingaleState.set(pid, { stake: MANTINGALE_START_STAKE, lastOutcome: null });
+          }
+          const state = martingaleState.get(pid);
+          totalStaked += state.stake;
+        });
 
-      const playersInMatch = new Set(allPlayers.map((p) => p.playerId));
-      const goalsById = new Map(allPlayers.map((p) => [p.playerId, p.goals ?? 0]));
+        const scorers = players.filter(p => (p?.stat?.goals || 0) > 0).map(p => p.playerId);
 
-      for (const pid of currentTop3) {
-        if (!playersInMatch.has(pid)) continue;
-        if (!martingaleState.has(pid))
-          martingaleState.set(pid, { stake: MANTINGALE_START_STAKE, lastOutcome: null });
-
-        const state = martingaleState.get(pid);
-        totalStaked += state.stake;
-
-        const scored = (goalsById.get(pid) ?? 0) > 0;
-        if (scored) {
-          totalReturn += state.stake * MANTINGALE_ODDS;
-          martingaleState.set(pid, { stake: MANTINGALE_START_STAKE, lastOutcome: "win" });
-        } else {
-          martingaleState.set(pid, { stake: state.stake * 2, lastOutcome: "loss" });
-        }
+        currentTop3.forEach(pid => {
+          const state = martingaleState.get(pid);
+          if (scorers.includes(pid)) {
+            totalReturn += state.stake * MANTINGALE_ODDS;
+            martingaleState.set(pid, { stake: MANTINGALE_START_STAKE, lastOutcome: "win" });
+          } else {
+            martingaleState.set(pid, { stake: state.stake * 2, lastOutcome: "loss" });
+          }
+        });
+      } catch (e) {
+        console.warn("⚠️ Nepodarilo sa načítať boxscore pre", game.id);
       }
     }
 
-    // 4️⃣ Výsledné hodnoty
     const playerRatingsByName = {};
-    for (const [pid, rating] of Object.entries(playerRatingsById)) {
+    Object.entries(playerRatingsById).forEach(([pid, rating]) => {
       const name = playerNamesById[pid] || pid;
       playerRatingsByName[name] = rating;
-    }
-
-    const nowTop3Ids = Object.entries(playerRatingsById)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([id]) => id);
-
-    const martingaleTop3 = nowTop3Ids.map((pid) => {
-      const state =
-        martingaleState.get(pid) || { stake: MANTINGALE_START_STAKE, lastOutcome: null };
-      return {
-        id: pid,
-        name: playerNamesById[pid] || pid,
-        stake: state.stake,
-        lastOutcome: state.lastOutcome,
-        odds: MANTINGALE_ODDS,
-      };
     });
 
     const martingaleSummary = {
       totalStaked: Number(totalStaked.toFixed(2)),
       totalReturn: Number(totalReturn.toFixed(2)),
       profit: Number((totalReturn - totalStaked).toFixed(2)),
-      odds: MANTINGALE_ODDS,
+      odds: MANTINGALE_ODDS
     };
 
     res.status(200).json({
-      matches: matchesWithStats,
+      matches: completed,
       teamRatings,
       playerRatings: playerRatingsByName,
-      martingale: { top3: martingaleTop3, summary: martingaleSummary },
+      martingale: { summary: martingaleSummary }
     });
   } catch (err) {
-    console.error("❌ Chyba:", err.message);
-    res.status(500).json({ error: "Chyba pri načítaní zápasov NHL" });
+    console.error("❌ Chyba pri načítaní NHL dát:", err.message);
+    res.status(500).json({ error: "Chyba pri načítaní NHL dát" });
   }
 }
