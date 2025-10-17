@@ -130,34 +130,67 @@ function computeTeamRatings(matches) {
 }
 
 // === Hlavné načítanie ===
+// ========================= API načítanie =========================
 async function fetchMatches() {
   try {
-    const matchesRaw = await fetchNhlSchedule();
-    if (!matchesRaw.length) {
-      console.warn("⚠️ Z NHL API neprišli žiadne zápasy!");
+    const response = await fetch(`${API_BASE}/api/matches`);
+    const data = await response.json();
+
+    console.log("✅ Dáta z backendu:", data);
+
+    // NHL formát – očakávame pole data.matches
+    const matches = Array.isArray(data.matches) ? data.matches : [];
+
+    if (matches.length === 0) {
+      console.warn("⚠️ Žiadne zápasy v data.matches");
     }
 
-    allMatches = matchesRaw;
-    const matches = matchesRaw.map(m => ({
+    // pre transformáciu do pôvodného tvaru
+    const normalized = matches.map((g) => ({
+      id: g.id,
+      date: g.date,
+      sport_event: {
+        start_time: g.start_time,
+        competitors: [
+          { name: g.home_team },
+          { name: g.away_team }
+        ]
+      },
+      sport_event_status: {
+        status: g.status,
+        home_score: g.home_score,
+        away_score: g.away_score
+      }
+    }));
+
+    allMatches = normalized; // pre Mantingal
+
+    // pre tabuľku zápasov
+    const simplified = normalized.map((m) => ({
+      id: m.id,
       home_team: m.sport_event.competitors[0].name,
       away_team: m.sport_event.competitors[1].name,
       home_score: m.sport_event_status.home_score,
       away_score: m.sport_event_status.away_score,
       status: m.sport_event_status.status,
-      date: m._day
+      date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
     }));
 
-    matches.sort((a, b) => new Date(b.date) - new Date(a.date));
-    teamRatings = computeTeamRatings(matchesRaw);
+    simplified.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    displayMatches(matches);
+    displayMatches(simplified);
+
+    teamRatings = data.teamRatings || {};
+    playerRatings = data.playerRatings || {};
+
     displayTeamRatings();
     displayPlayerRatings();
     displayMantingal();
   } catch (err) {
-    console.error("❌ Chyba pri fetchMatches:", err);
+    console.error("❌ Chyba pri načítaní zápasov:", err);
   }
 }
+
 
 // === Zápasy ===
 function displayMatches(matches) {
