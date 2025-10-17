@@ -11,6 +11,7 @@ export default async function handler(req, res) {
       return `${yyyy}-${mm}-${dd}`;
     };
 
+    // Vytvoríme pole dátumov od začiatku sezóny po dnes
     const dateRange = [];
     for (let d = new Date(START_DATE); d <= new Date(TODAY); d.setDate(d.getDate() + 1)) {
       dateRange.push(formatDate(new Date(d)));
@@ -18,6 +19,7 @@ export default async function handler(req, res) {
 
     const allMatches = [];
 
+    // --- 1️⃣ Načítame výsledky zápasov ---
     for (const day of dateRange) {
       const url = `https://api-web.nhle.com/v1/score/${day}`;
       const resp = await fetch(url);
@@ -42,7 +44,6 @@ export default async function handler(req, res) {
             home_score: g.homeTeam?.score ?? 0,
             away_score: g.awayTeam?.score ?? 0,
             start_time: g.startTimeUTC,
-            goals: g.goals || [] // 🆕 uložíme aj góly pre hráčske štatistiky
           });
         }
       }
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
 
     console.log(`✅ Načítaných ${allMatches.length} zápasov s výsledkami`);
 
-    // === Výpočet ratingov tímov ===
+    // --- 2️⃣ Výpočet ratingov tímov (zachovaný) ---
     const START_RATING = 1500;
     const GOAL_POINTS = 10;
     const WIN_POINTS = 10;
@@ -82,35 +83,39 @@ export default async function handler(req, res) {
       }
     }
 
-    // === 🆕 Výpočet ratingov hráčov ===
+    // --- 3️⃣ Hráčske štatistiky z boxscore ---
+    const playerRatings = {};
     const PLAYER_GOAL_POINTS = 20;
     const PLAYER_ASSIST_POINTS = 10;
-    const playerRatings = {};
 
     for (const match of allMatches) {
-      const goals = match.goals || [];
-      for (const goal of goals) {
-        const scorer = goal.name?.default || goal.name || "Neznámy hráč";
-        if (scorer) {
-          if (!playerRatings[scorer]) playerRatings[scorer] = 0;
-          playerRatings[scorer] += PLAYER_GOAL_POINTS;
-        }
+      try {
+        const boxUrl = `https://api-web.nhle.com/v1/gamecenter/${match.id}/boxscore`;
+        const boxResp = await fetch(boxUrl);
+        if (!boxResp.ok) continue;
+        const box = await boxResp.json();
 
-        const assists = goal.assists || [];
-        assists.forEach((a) => {
-          const asstName = a.name?.default || a.name || "Asistent";
-          if (!playerRatings[asstName]) playerRatings[asstName] = 0;
-          playerRatings[asstName] += PLAYER_ASSIST_POINTS;
-        });
+        const allPlayers = [
+          ...(box.homeTeam?.players ? Object.values(box.homeTeam.players) : []),
+          ...(box.awayTeam?.players ? Object.values(box.awayTeam.players) : []),
+        ];
+
+        for (const p of allPlayers) {
+          const name = p?.name?.default || p?.name || p?.lastName || "Unknown";
+          const goals = p?.stats?.skaterStats?.goals || 0;
+          const assists = p?.stats?.skaterStats?.assists || 0;
+
+          if (!playerRatings[name]) playerRatings[name] = 0;
+          playerRatings[name] += goals * PLAYER_GOAL_POINTS + assists * PLAYER_ASSIST_POINTS;
+        }
+      } catch (e) {
+        console.warn(`⚠️ Nepodarilo sa načítať boxscore pre zápas ${match.id}: ${e.message}`);
       }
     }
 
-    // zoradenie pre kontrolu
-    const topPlayers = Object.entries(playerRatings)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-    console.log("⭐ TOP 5 hráčov podľa ratingu:", topPlayers);
+    console.log(`🎯 Spočítaných hráčov: ${Object.keys(playerRatings).length}`);
 
+    // --- 4️⃣ Odpoveď API ---
     res.status(200).json({
       matches: allMatches,
       teamRatings,
