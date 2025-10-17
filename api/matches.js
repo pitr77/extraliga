@@ -26,16 +26,22 @@ export default async function handler(req, res) {
 
       const games = data.games || [];
       for (const g of games) {
+        // ber aj FINAL, LIVE aj OFF (OFF = skončený zápas)
         const state = (g.gameState || "").toUpperCase();
-        if (state === "FINAL" || state === "LIVE") {
+        if (["FINAL", "LIVE", "OFF"].includes(state)) {
           allMatches.push({
             id: g.id,
             date: day,
-            status: state === "FINAL" ? "closed" : "ap",
-            home_team: g.homeTeam.name.default,
-            away_team: g.awayTeam.name.default,
-            home_score: g.homeTeam.score,
-            away_score: g.awayTeam.score,
+            status:
+              state === "FINAL" || state === "OFF"
+                ? "closed"
+                : state === "LIVE"
+                ? "ap"
+                : "not_started",
+            home_team: g.homeTeam?.name?.default || g.homeTeam?.abbrev || "Home",
+            away_team: g.awayTeam?.name?.default || g.awayTeam?.abbrev || "Away",
+            home_score: g.homeTeam?.score ?? 0,
+            away_score: g.awayTeam?.score ?? 0,
             start_time: g.startTimeUTC,
           });
         }
