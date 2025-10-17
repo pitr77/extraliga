@@ -247,7 +247,25 @@ function displayTeamRatings() {
 function displayPlayerRatings() {
   const tableBody = document.querySelector("#playerRatings tbody");
   if (!tableBody) return;
-  tableBody.innerHTML = `<tr><td colspan="2">Dáta hráčov zatiaľ nepripojené</td></tr>`;
+
+  if (!playerRatings || Object.keys(playerRatings).length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="2">Dáta hráčov zatiaľ nepripojené</td></tr>`;
+    return;
+  }
+
+  // Zoradíme hráčov podľa ratingu (od najlepšieho)
+  const sorted = Object.entries(playerRatings).sort((a, b) => b[1] - a[1]);
+
+  tableBody.innerHTML = ""; // vyčisti tabuľku
+
+  sorted.forEach(([player, rating], index) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${index + 1}. ${player}</td>
+      <td>${rating}</td>
+    `;
+    tableBody.appendChild(row);
+  });
 }
 
 // === Mantingal placeholder ===
