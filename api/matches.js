@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const teamRatings = {};
     const playerRatings = {};
 
-    // === KONŠTANTY PRE RATINGY ===
+    // === KONŠTANTY ===
     const START_RATING = 1500;
     const GOAL_POINTS = 10;
     const WIN_POINTS = 10;
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     const PLAYER_GOAL_POINTS = 20;
     const PLAYER_ASSIST_POINTS = 10;
 
-    // === načítaj všetky zápasy (len score endpoints) ===
+    // === 1️⃣ NAČÍTANIE ZÁPASOV (score/{date}) ===
     for (const day of dateRange) {
       const url = `https://api-web.nhle.com/v1/score/${day}`;
       const resp = await fetch(url);
@@ -41,7 +41,7 @@ export default async function handler(req, res) {
         const as = g.awayTeam?.score ?? 0;
 
         allMatches.push({
-          id: g.id,
+          id: g.id, // dôležité pre boxscore
           date: day,
           status: "closed",
           home_team: home,
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
           start_time: g.startTimeUTC,
         });
 
-        // === team ratings ===
+        // === výpočet tímových ratingov ===
         if (!teamRatings[home]) teamRatings[home] = START_RATING;
         if (!teamRatings[away]) teamRatings[away] = START_RATING;
 
@@ -68,42 +68,53 @@ export default async function handler(req, res) {
       }
     }
 
-    // === BOX SCORES: len posledné 3 dni pre rýchlosť ===
+    // === 2️⃣ BOX SCORES PRE POSLEDNÉ 3 DNI ===
     const recentMatches = allMatches.slice(-30);
-    for (const m of recentMatches) {
+    for (const match of recentMatches) {
       try {
-        const boxUrl = `https://api-web.nhle.com/v1/gamecenter/${m.id}/boxscore`;
+        const boxUrl = `https://api-web.nhle.com/v1/gamecenter/${match.id}/boxscore`;
         const boxResp = await fetch(boxUrl);
         if (!boxResp.ok) continue;
-
         const boxData = await boxResp.json();
-        const homePlayers = Object.values(boxData.homeTeam?.players || {});
-        const awayPlayers = Object.values(boxData.awayTeam?.players || {});
+
+        // home & away hráči
+        const homePlayers = [
+          ...(boxData.playerByGameStats?.homeTeam?.forwards || []),
+          ...(boxData.playerByGameStats?.homeTeam?.defense || []),
+        ];
+        const awayPlayers = [
+          ...(boxData.playerByGameStats?.awayTeam?.forwards || []),
+          ...(boxData.playerByGameStats?.awayTeam?.defense || []),
+        ];
         const allPlayers = [...homePlayers, ...awayPlayers];
 
+        // pre každý zápas pripočítaj hráčom ich body
         for (const p of allPlayers) {
-          const stats = p?.stats;
-          if (!stats) continue;
+          const name = p.name?.default || "Neznámy hráč";
+          const goals = p.goals ?? 0;
+          const assists = p.assists ?? 0;
 
-          const goals = stats.goals ?? 0;
-          const assists = stats.assists ?? 0;
           if (goals === 0 && assists === 0) continue;
 
-          const name =
-            (p.firstName?.default && p.lastName?.default)
-              ? `${p.firstName.default} ${p.lastName.default}`
-              : p?.name?.default || "Neznámy hráč";
-
-          if (!playerRatings[name]) playerRatings[name] = 1500; // základ
+          if (!playerRatings[name]) playerRatings[name] = 1500;
           playerRatings[name] += goals * PLAYER_GOAL_POINTS + assists * PLAYER_ASSIST_POINTS;
         }
+
+        console.log(`✅ Spracovaný boxscore zápasu ${match.id}`);
       } catch (e) {
-        console.warn(`⚠️ Boxscore chyba pre zápas ${m.id}: ${e.message}`);
+        console.warn(`⚠️ Chyba pri boxscore zápase ${match.id}: ${e.message}`);
       }
     }
 
-    console.log(`✅ Zápasy: ${allMatches.length}, hráči: ${Object.keys(playerRatings).length}`);
-    res.status(200).json({ matches: allMatches, teamRatings, playerRatings });
+    console.log(
+      `✅ Hotovo: zápasy=${allMatches.length}, tímy=${Object.keys(teamRatings).length}, hráči=${Object.keys(playerRatings).length}`
+    );
+
+    res.status(200).json({
+      matches: allMatches,
+      teamRatings,
+      playerRatings,
+    });
   } catch (err) {
     console.error("❌ Chyba backendu:", err);
     res.status(500).json({ error: err.message });
