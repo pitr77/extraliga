@@ -10,7 +10,19 @@
 <body>
     <!-- 🏒 HLAVIČKA -->
 <header class="header-container">
-  <div class="logo-title">
+
+  <!-- 🔹 NAVIGÁCIA PRE PC -->
+<nav class="desktop-nav">
+  <ul>
+    <li data-target="matches-section">Výsledky</li>
+    <li data-target="teams-section">Rating tímov</li>
+    <li data-target="players-section">Rating hráčov</li>
+    <li data-target="mantingal-container">Mantingal</li>
+  </ul>
+</nav>
+
+<!-- LOGO -->
+    <div class="logo-title">
     <img src="nhl_logo.png" alt="NHL logo" class="nhl-logo">
     <h1 class="season-title">NHL 2025 – 2026</h1>
   </div>
@@ -99,5 +111,16 @@
             }
         });
     </script>
+    
+    <script>
+  // 🖥️ Klikateľné menu na PC
+  document.querySelectorAll(".desktop-nav li").forEach((item) => {
+    item.addEventListener("click", () => {
+      const target = item.getAttribute("data-target");
+      document.querySelectorAll(".section").forEach(sec => sec.style.display = "none");
+      document.getElementById(target).style.display = "block";
+    });
+  });
+</script>
 </body>
 </html>
