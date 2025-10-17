@@ -526,44 +526,50 @@ button:hover {
 /* 🟡 Úprava headera len pre mobilné zariadenia */
 @media (max-width: 768px) {
 
-  /* skryj text NHL 2025 – 2026 */
+  /* 🟡 skryj text NHL 2025 – 2026 */
   .header-left span {
     display: none !important;
   }
 
-  /* pozadie – logo NHL s jemnou priehľadnosťou */
+  /* 🟡 skry samotné logo, použijeme ho ako pozadie */
+  .header-left img {
+    display: none !important;
+  }
+
+  /* 🟡 celý header ako pozadie s logom */
   header {
     position: relative;
+    height: 140px; /* výška bloku */
     background: rgba(0, 10, 25, 0.9);
     overflow: hidden;
   }
 
+  /* 🟡 logo ako podklad */
   header::before {
     content: "";
     position: absolute;
     inset: 0;
     background: url("nhl_logo.png") center/contain no-repeat;
-    opacity: 0.12; /* jemná viditeľnosť loga */
+    opacity: 0.1;
     z-index: 0;
   }
 
-  /* text v strede (aby bol nad pozadím) */
+  /* 🟡 žltý text v strede */
   .header-center {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 1;
-    text-align: center;
     font-family: "Permanent Marker", cursive;
-    font-size: clamp(22px, 6vw, 30px);
     color: #ffd400;
-    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), 0 0 12px rgba(255, 215, 0, 0.4);
-    padding: 25px 0;
-  }
-
-  /* skry samotné logo (nech je len ako pozadie) */
-  .header-left img {
-    display: none !important;
+    font-size: clamp(22px, 6vw, 30px);
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 215, 0, 0.5);
+    white-space: nowrap;
+    text-align: center;
   }
 }
+
 
 
 
