@@ -5,13 +5,11 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap");
 
-/* 🌍 pridany riadok */
-/* 🌍 Globálny font a farby */
 body, select, input, button, table, th, td, h1, h2, h3, p, div, span {
   font-family: "Poppins", "Segoe UI", sans-serif;
   color: #eaf9ff;
@@ -19,36 +17,94 @@ body, select, input, button, table, th, td, h1, h2, h3, p, div, span {
 }
 
 body {
-  font-family: "Poppins", "Segoe UI", sans-serif;
   background: radial-gradient(circle at top, #001f33 0%, #000814 100%);
   color: #f2f6f8;
-  margin: 0;
-  padding: 0;
   line-height: 1.6;
   padding: 1rem;
 }
 
 /* -------------------------------
-   HLAVIČKA
+   HEADER – logo vlavo, text v strede
+----------------------------------*/
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 40px;
+  background: linear-gradient(90deg, rgba(0, 40, 70, 0.8), rgba(0, 10, 25, 0.9));
+  border-bottom: 1px solid rgba(0, 183, 255, 0.3);
+  position: relative;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left img {
+  width: 70px;
+  height: auto;
+  filter: drop-shadow(0 0 8px rgba(0, 183, 255, 0.5));
+}
+
+.header-left span {
+  color: #00b7ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.header-center {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translate(-50%, 0);
+  font-family: "Permanent Marker", cursive;
+  color: #ffd400;
+  font-size: clamp(20px, 2vw, 30px);
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* -------------------------------
+   NAVIGAČNÉ MENU (PC)
+----------------------------------*/
+nav {
+  display: flex;
+  justify-content: center;
+  background: rgba(0, 20, 35, 0.9);
+  border-bottom: 1px solid rgba(0, 183, 255, 0.3);
+  padding: 10px 0;
+  gap: 20px;
+}
+
+nav button {
+  background: rgba(0, 183, 255, 0.1);
+  color: #00eaff;
+  border: 1px solid rgba(0, 183, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+nav button:hover {
+  background: rgba(0, 234, 255, 0.25);
+  box-shadow: 0 0 10px rgba(0, 234, 255, 0.4);
+  transform: scale(1.05);
+}
+
+/* -------------------------------
+   HLAVIČKY SEKCII
 ----------------------------------*/
 h1 {
   text-align: center;
   color: #00b7ff;
   margin-bottom: 1.5rem;
-  text-shadow: 0 0 10px rgba(0,183,255,0.6);
-}
-
-header h1 {
-  text-align: center;
-  font-size: 2.8rem;
-  color: #ffffff;
-  font-weight: 800;
-  text-shadow: 0 0 10px rgba(0, 234, 255, 0.7),
-               0 0 20px rgba(0, 234, 255, 0.5),
-               0 0 30px rgba(0, 234, 255, 0.3);
-  letter-spacing: 1px;
-  margin-bottom: 0.8rem;
-  font-family: "Poppins", "Segoe UI", sans-serif;
+  text-shadow: 0 0 10px rgba(0, 183, 255, 0.6);
 }
 
 #matches-section h2 {
@@ -65,7 +121,7 @@ header h1 {
 .section {
   background: #161b22;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.4);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
   padding: 1rem;
   margin-bottom: 1.5rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -73,25 +129,7 @@ header h1 {
 
 .section:hover {
   transform: translateY(-3px);
-  box-shadow: 0 0 15px rgba(0,183,255,0.3);
-}
-
-#mobileSelect {
-  display: block;
-  margin: 0 auto 1rem auto;
-  text-align: center;
-  font-size: 1.1rem;
-  color: #00eaff;
-  background: rgba(0, 183, 255, 0.1);
-  border: 1px solid rgba(0, 234, 255, 0.4);
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  text-align-last: center; /* 🔹 toto centrovanie textu v <select> */
-  box-shadow: 0 0 8px rgba(0, 234, 255, 0.2);
-}
-
-#mobileSelect option {
-  text-align: center;
+  box-shadow: 0 0 15px rgba(0, 183, 255, 0.3);
 }
 
 /* -------------------------------
@@ -106,7 +144,7 @@ table {
 
 th, td {
   padding: 0.6rem;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   text-align: left;
 }
 
@@ -119,7 +157,7 @@ th {
 }
 
 tr:hover td {
-  background: rgba(0,183,255,0.05);
+  background: rgba(0, 183, 255, 0.05);
   cursor: pointer;
 }
 
@@ -153,7 +191,7 @@ button:hover {
 }
 
 /* -------------------------------
-   MANTINGAL SEKCIÁ
+   MANTINGAL
 ----------------------------------*/
 #mantingal {
   margin-top: 1rem;
@@ -164,38 +202,43 @@ button:hover {
   color: #00eaff;
 }
 
-#mantingal-summary-pc, 
-#mantingal-summary-mobile {
-  background: #10161d;
-  border: 1px solid rgba(0,183,255,0.3);
-  border-radius: 8px;
-  padding: 0.8rem;
-  margin-top: 1rem;
-}
-
-#mantingal-summary-pc p, 
-#mantingal-summary-mobile p {
-  margin: 0.3rem 0;
-}
-
 /* -------------------------------
-   DETAILY ZÁPASU
-----------------------------------*/
-.details-box {
-  background: #10161d;
-  border-left: 3px solid #00b7ff;
-  padding: 0.7rem;
-  border-radius: 5px;
-  font-size: 0.9rem;
-  color: #ddd;
-}
-
-/* -------------------------------
-   RESPONSIVE
+   RESPONSIVE (mobil)
 ----------------------------------*/
 @media (max-width: 768px) {
   body {
     padding: 0.5rem;
+  }
+
+  header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .header-left {
+    flex-direction: column;
+  }
+
+  .header-left img {
+    width: 60px;
+  }
+
+  .header-center {
+    position: static;
+    transform: none;
+    margin-top: 0.5rem;
+    font-size: 1.3rem;
+  }
+
+  nav {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  nav button {
+    width: 80%;
+    margin: 0 auto;
   }
 
   table {
@@ -205,323 +248,4 @@ button:hover {
   .section {
     margin-bottom: 1rem;
   }
-
-  h1 {
-    font-size: 1.3rem;
-  }
 }
-
-/* -------------------------------
-   NAVIGAČNÉ MENU POD NADPISOM
-----------------------------------*/
-
-#mobileSelect {
-  display: block;
-  margin: 0.8rem auto 1.5rem auto;   /* centrovanie */
-  padding: 0.7rem 1rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #00b7ff, #00eaff);
-  color: #0c1015;
-  border: none;
-  box-shadow: 0 0 10px rgba(0,183,255,0.4);
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  width: 240px;   /* šírka menu */
-}
-
-#mobileSelect:hover {
-  background: linear-gradient(135deg, #00eaff, #00b7ff);
-  transform: scale(1.05);
-  box-shadow: 0 0 15px rgba(0,183,255,0.6);
-}
-
-#mobileSelect:focus {
-  outline: 2px solid #00eaff;
-  outline-offset: 3px;
-}
-
-/* Nadpis kola v tabuľke zápasov */
-#matches tbody tr td[colspan="4"] {
-  text-align: center;
-  background: linear-gradient(90deg, rgba(0,183,255,0.15), rgba(0,234,255,0.15));
-  color: #00eaff;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 0.6rem 0;
-  border-radius: 6px;
-}
-
-/* Vycentrovanie nadpisu kola (napr. 9. kolo (2025-10-05)) */
-#matches tbody tr td[colspan="4"] {
-  text-align: center !important;
-  background: linear-gradient(90deg, rgba(0,183,255,0.15), rgba(0,234,255,0.15));
-  color: #00eaff;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 0.6rem 0;
-  border-radius: 6px;
-}
-
-/* Vycentrovanie rating timov a rating hracov */
-#teamRatings-section h2,
-#playerRatings-section h2 {
-  text-align: center;
-  font-size: 1.8rem;
-  color: #00eaff;
-  text-shadow: 0 0 8px rgba(0, 234, 255, 0.6);
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-
-/* Rolovacie menu */
-#mobileSelect {
-  display: block;
-  margin: 0.5rem auto 1.2rem auto;
-  text-align-last: center;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: #00eaff;
-  background: rgba(0, 255, 255, 0.05);
-  border: 1px solid rgba(0, 234, 255, 0.6);
-  border-radius: 10px;
-  padding: 0.6rem 1.2rem;
-  box-shadow: 0 0 15px rgba(0, 234, 255, 0.2);
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-#mobileSelect:hover {
-  background: rgba(0, 255, 255, 0.15);
-  box-shadow: 0 0 20px rgba(0, 234, 255, 0.4);
-}
-
-#mobileSelect:focus {
-  outline: none;
-  border-color: #00eaff;
-  box-shadow: 0 0 25px rgba(0, 234, 255, 0.6);
-}
-
-#mobileSelect option {
-  background: #001f33;
-  color: #00eaff;
-  text-align: center;
-  font-weight: 500;
-}
-
-/* BONUS - Jemny glow */
-#teamRatings table,
-#playerRatings table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: center;
-  font-size: 1rem;
-  color: #e6faff;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 234, 255, 0.2);
-  backdrop-filter: blur(3px);
-}
-
-/* Skry nadpisy v sekciách Rating tímov a Rating hráčov */
-#teamRatings-section h2,
-#playerRatings-section h2 {
-  display: none;
-}
-
-#teamRatings h2,
-#playerRatings h2 {
-  display: none;
-
-}
-
-.corner-note {
-  position: relative;
-  display: block;
-  width: 100%;
-  text-align: center;
-  margin-bottom: 0.3rem;
-
-  font-family: "Permanent Marker", cursive !important;
-  font-size: clamp(20px, 2.5vw, 32px);
-  color: #ffd400;
-  text-shadow: 0 2px 3px rgba(0,0,0,0.5), 0 0 15px rgba(255, 208, 0, 0.4);
-  transform: rotate(-1deg);
-}
-
-/* 💫 Žltý nápis hore v strede */
-#corner-note {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%) rotate(-2deg);
-  font-family: "Permanent Marker", cursive;
-  font-size: clamp(20px, 2.5vw, 30px);
-  color: #ffd400;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 215, 0, 0.4);
-  pointer-events: none;
-  z-index: 1000;
-}
-
-/* 🏒 Logo vľavo s podnadpisom */
-.logo-container {
-  position: fixed;
-  top: 50px;      /* posunuté nižšie pod žltý text */
-  left: 20px;
-  text-align: center;
-  z-index: 900;
-}
-
-.nhl-logo {
-  width: 100px;
-  height: auto;
-  display: block;
-  margin: 0 auto;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
-}
-
-.logo-subtitle {
-  font-family: "Poppins", sans-serif;
-  font-size: 0.9rem;
-  color: #00eaff;
-  text-shadow: 0 0 6px rgba(0, 234, 255, 0.6);
-  margin-top: 0.3rem;
-  font-weight: 500;
-}
-
-/* -------------------------------
-   HLAVIČKA / HEADER
-----------------------------------*/
-.main-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(180deg, rgba(0,15,30,0.9), rgba(0,10,25,0.95));
-  padding: 1rem 2rem;
-  border-bottom: 2px solid rgba(0,234,255,0.2);
-  box-shadow: 0 4px 20px rgba(0, 234, 255, 0.15);
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.nhl-logo {
-  width: 80px;
-  filter: drop-shadow(0 0 8px rgba(0,234,255,0.5));
-}
-
-.season-text {
-  color: #00eaff;
-  font-weight: 600;
-  font-size: 1rem;
-  text-shadow: 0 0 8px rgba(0,234,255,0.4);
-}
-
-.header-center {
-  flex: 1;
-  text-align: center;
-}
-
-.header-title {
-  font-family: "Permanent Marker", cursive;
-  color: #ffd400;
-  font-size: clamp(22px, 3vw, 34px);
-  text-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 20px rgba(255,212,0,0.6);
-  margin: 0;
-  transform: rotate(-2deg);
-}
-
-/* -------------------------------
-   NAVIGÁCIA PRE PC
-----------------------------------*/
-.desktop-nav {
-  display: none;
-  justify-content: center;
-  background: rgba(0,20,40,0.8);
-  border-top: 1px solid rgba(0,234,255,0.25);
-  border-bottom: 1px solid rgba(0,234,255,0.25);
-  backdrop-filter: blur(8px);
-  padding: 0.8rem 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.desktop-nav ul {
-  list-style: none;
-  display: flex;
-  gap: 2.5rem;
-  padding: 0;
-  margin: 0;
-}
-
-.desktop-nav li {
-  color: #00eaff;
-  font-weight: 600;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.3s ease;
-}
-
-.desktop-nav li:hover {
-  color: #ffd400;
-  text-shadow: 0 0 8px rgba(255,212,0,0.8);
-  transform: translateY(-2px);
-}
-
-.desktop-nav li::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: -5px;
-  width: 0%;
-  height: 2px;
-  background: #ffd400;
-  transition: width 0.3s ease;
-}
-
-.desktop-nav li:hover::after {
-  width: 100%;
-}
-
-/* Zobraziť navigáciu len na PC */
-@media (min-width: 769px) {
-  .desktop-nav {
-    display: flex;
-  }
-
-  .mobile-menu {
-    display: none;
-  }
-}
-
-/* -------------------------------
-   MOBILNÉ ZOBRAZENIE HEADERA
-----------------------------------*/
-@media (max-width: 768px) {
-  .main-header {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 1rem;
-  }
-
-  .nhl-logo {
-    width: 60px;
-  }
-
-  .season-text {
-    font-size: 0.9rem;
-  }
-
-  .header-title {
-    font-size: 1.4rem;
-  }
-}
-
-
-
