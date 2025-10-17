@@ -50,10 +50,50 @@ export default async function handler(req, res) {
 
     console.log(`✅ Načítaných ${allMatches.length} zápasov s výsledkami`);
 
+    // === Výpočet ratingov tímov ===
+    const START_RATING = 1500;
+    const GOAL_POINTS = 10;
+    const WIN_POINTS = 10;
+    const LOSS_POINTS = -10;
+
+    const teamRatings = {};
+    const ensure = (team) => {
+      if (teamRatings[team] == null) teamRatings[team] = START_RATING;
+    };
+
+    for (const m of allMatches) {
+      const home = m.home_team;
+      const away = m.away_team;
+      const hs = m.home_score ?? 0;
+      const as = m.away_score ?? 0;
+
+      ensure(home);
+      ensure(away);
+
+      // góly
+      teamRatings[home] += hs * GOAL_POINTS - as * GOAL_POINTS;
+      teamRatings[away] += as * GOAL_POINTS - hs * GOAL_POINTS;
+
+      // výhra/prehra
+      if (hs > as) {
+        teamRatings[home] += WIN_POINTS;
+        teamRatings[away] += LOSS_POINTS;
+      } else if (as > hs) {
+        teamRatings[away] += WIN_POINTS;
+        teamRatings[home] += LOSS_POINTS;
+      }
+    }
+
+    // zoradené výpis pre kontrolu v logu
+    const sorted = Object.entries(teamRatings)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
+    console.log("🏒 TOP10 ratingov tímov:", sorted);
+
     res.status(200).json({
       matches: allMatches,
-      teamRatings: {},
-      playerRatings: {},
+      teamRatings,
+      playerRatings: {}, // zatiaľ prázdne, neskôr doplníme
     });
   } catch (err) {
     console.error("❌ Chyba pri fetchnutí NHL skóre:", err);
