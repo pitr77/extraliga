@@ -8,26 +8,28 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- 🏒 HLAVIČKA -->
-<header class="header-container">
 
-  <!-- 🔹 NAVIGÁCIA PRE PC -->
+    <!-- 🔹 HLAVIČKA -->
+<header class="main-header">
+  <div class="header-left">
+    <img src="./public/nhl_logo.png" alt="NHL Logo" class="nhl-logo">
+    <div class="season-text">NHL 2025 – 2026</div>
+  </div>
+  <div class="header-center">
+    <h1 class="header-title">Tipuj NHL ako profík!</h1>
+  </div>
+</header>
+
+<!-- 🔹 NAVIGÁCIA PRE PC -->
 <nav class="desktop-nav">
   <ul>
     <li data-target="matches-section">Výsledky</li>
     <li data-target="teams-section">Rating tímov</li>
     <li data-target="players-section">Rating hráčov</li>
     <li data-target="mantingal-container">Mantingal</li>
+    <li data-target="predictions-section">Predikcie</li>
   </ul>
 </nav>
-
-<!-- LOGO -->
-    <div class="logo-title">
-    <img src="nhl_logo.png" alt="NHL logo" class="nhl-logo">
-    <h1 class="season-title">NHL 2025 – 2026</h1>
-  </div>
-  <div class="corner-note">Tipuj NHL ako profík!</div>
-</header>
     
     <!-- 📱 mobilné menu -->
     <div class="mobile-menu">
@@ -36,6 +38,7 @@
             <option value="teams">Rating tímov</option>
             <option value="players">Rating hráčov</option>
             <option value="mantingal">Mantingal</option>
+            <option value="predictions">Predikcie</option>
         </select>
     </div>
 
@@ -91,6 +94,12 @@
         <div class="mantingal-mobile section" id="mantingal-container"></div>
     </div>
 
+        <!-- predikcie (mobilná verzia) -->
+        <div class="section" id="predictions-section">
+            <h2>Predikcie</h2>
+            <p>Táto sekcia bude čoskoro dostupná...</p>
+        </div>
+
     <script src="app.js"></script>
     <script>
         // 📱 prepínanie sekcií na mobile
@@ -102,6 +111,7 @@
             if (val === "teams") document.getElementById("teams-section").style.display = "block";
             if (val === "players") document.getElementById("players-section").style.display = "block";
             if (val === "mantingal") document.getElementById("mantingal-container").style.display = "block";
+            if (val === "predictions") document.getElementById("predictions-section").style.display = "block";
         });
 
         // default – pri štarte na mobile zobraz zápasy
@@ -111,7 +121,7 @@
             }
         });
     </script>
-    
+
     <script>
   // 🖥️ Klikateľné menu na PC
   document.querySelectorAll(".desktop-nav li").forEach((item) => {
