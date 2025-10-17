@@ -523,38 +523,40 @@ button:hover {
   }
 }
 
-/* 🟡 Úprava headera len pre mobilné zariadenia */
 @media (max-width: 768px) {
 
-  /* 🟡 skryj text NHL 2025 – 2026 */
-  .header-left span {
+  /* 🟡 Skry celý text NHL 2025 – 2026 v mobile */
+  .header-left span,
+  header span,
+  h1,
+  .header-left h1 {
     display: none !important;
+    visibility: hidden !important;
   }
 
-  /* 🟡 skry samotné logo, použijeme ho ako pozadie */
+  /* 🟡 Skry logo, použijeme ho ako pozadie */
   .header-left img {
     display: none !important;
   }
 
-  /* 🟡 celý header ako pozadie s logom */
+  /* 🟡 Header s jemným pozadím loga */
   header {
     position: relative;
-    height: 140px; /* výška bloku */
-    background: rgba(0, 10, 25, 0.9);
+    height: 140px;
+    background: rgba(0, 10, 25, 0.95);
     overflow: hidden;
   }
 
-  /* 🟡 logo ako podklad */
   header::before {
     content: "";
     position: absolute;
     inset: 0;
     background: url("nhl_logo.png") center/contain no-repeat;
-    opacity: 0.1;
+    opacity: 0.08;
     z-index: 0;
   }
 
-  /* 🟡 žltý text v strede */
+  /* 🟡 Text Tipuj NHL ako profík v strede */
   .header-center {
     position: absolute;
     top: 50%;
@@ -564,11 +566,13 @@ button:hover {
     font-family: "Permanent Marker", cursive;
     color: #ffd400;
     font-size: clamp(22px, 6vw, 30px);
-    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), 0 0 15px rgba(255, 215, 0, 0.5);
+    text-shadow: 0 3px 8px rgba(0, 0, 0, 0.7),
+                 0 0 15px rgba(255, 215, 0, 0.5);
     white-space: nowrap;
     text-align: center;
   }
 }
+
 
 
 
