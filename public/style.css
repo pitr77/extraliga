@@ -10,6 +10,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
+/* 🌍 pridany riadok */
 /* 🌍 Globálny font a farby */
 body, select, input, button, table, th, td, h1, h2, h3, p, div, span {
   font-family: "Poppins", "Segoe UI", sans-serif;
