@@ -336,7 +336,8 @@ button:hover {
   display: none;
 
 }
-.corner-note {
+
+#corner-note {
   position: fixed;
   top: 12px;
   right: 12px;
@@ -346,10 +347,10 @@ button:hover {
   font-size: clamp(18px, 2.2vw, 28px);
   line-height: 1.1;
 
-  color: #ffd400;               /* žltá */
+  color: #ffd400; /* žltá */
   text-shadow: 0 1px 2px rgba(0,0,0,.5), 0 0 18px rgba(0,0,0,.35);
 
-  transform: rotate(-2deg);      /* jemná “ručne písaná” vibe */
-  pointer-events: none;          /* nech neprekáža klikom na UI */
+  transform: rotate(-2deg);
+  pointer-events: none;
 }
 
