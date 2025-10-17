@@ -60,32 +60,33 @@ header h1 {
 }
 
 /* ----------------------------------
-   HLAVIČKA S LOGOM NHL
+   🏒 Logo vľavo s textom pod ním
 ----------------------------------*/
-.header-logo-title {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+.logo-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  text-align: center;
 }
 
 .nhl-logo {
-  width: clamp(80px, 10vw, 120px);
+  width: 100px;
   height: auto;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
 }
 
-.title-text {
+.logo-subtitle {
   font-family: "Poppins", sans-serif;
-  font-weight: 700;
+  font-size: 0.9rem;
   color: #00eaff;
-  text-shadow: 0 0 10px rgba(0, 234, 255, 0.6);
-  font-size: clamp(22px, 2.5vw, 34px);
-  letter-spacing: 1px;
+  text-shadow: 0 0 6px rgba(0, 234, 255, 0.6);
+  margin-top: 0.3rem;
+  font-weight: 500;
 }
 
-/* 💫 žltý nápis nad logom */
+/* 💫 Žltý nápis hore v strede */
 #corner-note {
   position: absolute;
   top: 10px;
