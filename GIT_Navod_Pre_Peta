@@ -13,3 +13,13 @@ git merge main
 Počas práce: keď vieš, že kolega urobil veľké zmeny → zopakuješ git pull origin main vo svojej vetve, aby si neostal pozadu.
 
 Keď je tvoja práca hotová → spravíš Push a potom Pull Request do main.
+
+-------------------------------------------------------------------------------------
+Ako si nastavim aby som vedel spustit server vercel z codespace
+
+npm install -g vercel
+
+npm run dev
+
+
+
