@@ -8,6 +8,7 @@ const BASE_STAKE = 1;
 const ODDS = 2.5;
 const API_BASE = "";
 
+// pridany prvy riadok ===
 // === Nastavenie dátumov pre sezónu 2025/26 ===
 const START_DATE = "2025-10-08"; // prvé zápasy novej sezóny
 const TODAY = new Date().toISOString().slice(0, 10); // dnešný dátum
