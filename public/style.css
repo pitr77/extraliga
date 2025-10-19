@@ -933,67 +933,59 @@ nav button:hover::after {
 }
 
 .odds-match {
-  background: rgba(0, 20, 40, 0.8);
+  background: rgba(0, 10, 25, 0.7);
   border: 1px solid rgba(0, 234, 255, 0.2);
   border-radius: 10px;
   padding: 1rem;
+  margin-bottom: 1rem;
   text-align: center;
   box-shadow: 0 0 10px rgba(0, 234, 255, 0.1);
-  transition: 0.3s ease;
-}
-
-.odds-match:hover {
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
-  transform: translateY(-3px);
 }
 
 .match-header {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 10px;
-  font-weight: 700;
-  color: #00eaff;
-  font-size: 1.1rem;
-  margin-bottom: 0.8rem;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.6rem;
 }
 
 .team-logo {
-  width: 45px;
-  height: 45px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
-  filter: drop-shadow(0 0 6px rgba(0, 234, 255, 0.5));
-}
-
-.vs {
-  color: #ffd400;
-  font-weight: bold;
-  margin: 0 4px;
 }
 
 .odds-row {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 20px;
+  gap: 0.8rem;
 }
 
 .odds-cell {
-  background: rgba(0, 234, 255, 0.1);
+  background: rgba(0, 234, 255, 0.05);
   border: 1px solid rgba(0, 234, 255, 0.2);
   border-radius: 8px;
-  width: 70px;
-  padding: 8px;
+  padding: 0.5rem 1rem;
+  min-width: 50px;
   color: #fff;
-  font-weight: 600;
-  box-shadow: 0 0 6px rgba(0, 234, 255, 0.1);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.odds-cell:hover {
+  background: rgba(255, 215, 0, 0.2);
+  border-color: #ffd400;
 }
 
 .odds-cell b {
   color: #ffd400;
-  display: block;
-  margin-bottom: 4px;
-  font-size: 1rem;
+  font-size: 1.1rem;
+}
+
+.team-name {
+  color: #00eaff;
+  font-weight: 600;
 }
 
 /* 📱 Mobilné zobrazenie – len rolovacie menu, bez tohto štýlu */
