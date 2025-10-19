@@ -1,3 +1,4 @@
+// zaciatok kodu
 // /api/predictions.js
 export default async function handler(req, res) {
   try {
