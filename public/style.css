@@ -854,6 +854,43 @@ nav button:hover::after {
   margin-bottom: 0.2rem;
 }
 
+.odds-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.odds-item {
+  background: linear-gradient(90deg, rgba(0, 30, 60, 0.7), rgba(0, 15, 30, 0.9));
+  border: 1px solid rgba(0, 183, 255, 0.3);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.odds-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 0 10px rgba(0,183,255,0.4);
+}
+
+.match-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 1rem;
+  color: #eaf9ff;
+}
+
+.team-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px rgba(0,183,255,0.5));
+}
+
 /* 📱 Mobilné zobrazenie – len rolovacie menu, bez tohto štýlu */
 @media (max-width: 768px) {
   nav {
