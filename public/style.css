@@ -734,6 +734,88 @@ nav button:hover {
   }
 }
 
+/* -------------------------------
+   HORIZONTÁLNE MENU POD HEADEROM
+----------------------------------*/
+nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2.5rem;
+  background: rgba(0, 20, 35, 0.9);
+  border-top: 1px solid rgba(0, 183, 255, 0.3);
+  border-bottom: 1px solid rgba(0, 183, 255, 0.3);
+  padding: 14px 0;
+  position: relative;
+  z-index: 50;
+}
+
+/* základný vzhľad tlačidiel – teraz ako text */
+nav button {
+  background: none;
+  border: none;
+  color: #00eaff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  position: relative;
+  text-transform: uppercase;
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+/* animované žlté čiary hore a dole */
+nav button::before,
+nav button::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #ffd400;
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  opacity: 0.9;
+}
+
+nav button::before {
+  top: 0;
+  transform-origin: left;
+}
+
+nav button::after {
+  bottom: 0;
+  transform-origin: right;
+}
+
+/* efekt pri hover */
+nav button:hover {
+  color: #ffd400;
+  transform: translateY(-2px);
+}
+
+nav button:hover::before {
+  transform: scaleX(1);
+  transform-origin: right;
+}
+
+nav button:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* 📱 Mobilné zobrazenie – len rolovacie menu, bez tohto štýlu */
+@media (max-width: 768px) {
+  nav {
+    display: none !important;
+  }
+  .mobile-menu {
+    display: block !important;
+    margin: 1rem auto;
+    text-align: center;
+  }
+}
+
 
 
 
