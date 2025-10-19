@@ -304,15 +304,15 @@ async function displayPredictions() {
       const homeLogo = game.homeTeam?.logo || "";
       const awayLogo = game.awayTeam?.logo || "";
 
-      // Hľadáme kurzy z MONEY_LINE_3_WAY (1, X, 2)
-      const homeML3 = game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
-      const drawML3 = game.homeTeam?.odds?.find(o => o.qualifier === "Draw")?.value;
-      const awayML3 = game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
+      // nájdeme MONEY_LINE_3_WAY kurzy
+      const homeOdds3 = game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
+      const drawOdds3 = game.homeTeam?.odds?.find(o => o.qualifier === "Draw")?.value;
+      const awayOdds3 = game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
 
-      // fallback – ak nie je 3-way, použijeme 2-way
-      const homeOdds = homeML3 ?? game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
-      const drawOdds = drawML3 ?? "-";
-      const awayOdds = awayML3 ?? game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
+      // fallback na 2-way
+      const homeOdds = homeOdds3 ?? game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
+      const drawOdds = drawOdds3 ?? "-";
+      const awayOdds = awayOdds3 ?? game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
 
       const hasDraw = drawOdds !== "-";
 
@@ -320,11 +320,11 @@ async function displayPredictions() {
       match.className = "odds-match";
       match.innerHTML = `
         <div class="match-header">
-          <img src="${homeLogo}" class="team-logo">
-          <span>${home}</span>
+          <img src="${homeLogo}" class="team-logo" alt="${home}">
+          <span class="team-name">${home}</span>
           <span class="vs">–</span>
-          <span>${away}</span>
-          <img src="${awayLogo}" class="team-logo">
+          <span class="team-name">${away}</span>
+          <img src="${awayLogo}" class="team-logo" alt="${away}">
         </div>
 
         <div class="odds-row">
