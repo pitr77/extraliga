@@ -276,45 +276,48 @@ function displayMantingal() {
   `;
 }
 
-// === 🧠 PREDICTIONS: načítanie kurzov bookmakerov ===
-async function fetchPredictions() {
-  const content = document.getElementById("predictions-content");
-  if (!content) return;
+// === Predikcie – kurzy bookmakerov ===
+async function displayPredictions() {
+  const container = document.getElementById("predictions-section");
+  if (!container) return;
 
-  content.innerHTML = "<p>Načítavam aktuálne kurzy...</p>";
+  container.innerHTML = `<h2>Predikcie – Kurzy bookmakerov</h2><p>Načítavam aktuálne kurzy...</p>`;
 
   try {
     const resp = await fetch("/api/predictions");
     const data = await resp.json();
 
-    if (!data.games || !data.games.length) {
-      content.innerHTML = "<p>Žiadne dostupné kurzy.</p>";
+    if (!data.games?.length) {
+      container.innerHTML = "<p>Žiadne dostupné kurzy</p>";
       return;
     }
 
-    const html = data.games
-      .map(game => `
-        <div class="prediction-card">
-          <div class="matchup">
-            <span>${game.homeTeam}</span> vs <span>${game.awayTeam}</span>
-          </div>
-          <div class="odds-list">
-            ${game.bookmakers.map(line => `
-              <div class="bookmaker">
-                <span class="provider">${line.provider}</span>
-                <span>Domáci: <b>${line.homeOdds ?? "-"}</b></span>
-                <span>Hostia: <b>${line.awayOdds ?? "-"}</b></span>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      `)
-      .join("");
+    const list = document.createElement("div");
+    list.className = "odds-list";
 
-    content.innerHTML = html;
+    data.games.forEach(g => {
+      const row = document.createElement("div");
+      row.className = "odds-item";
+      row.innerHTML = `
+        <div class="match-info">
+          <img src="${g.homeLogo}" alt="${g.homeTeam}" class="team-logo">
+          <span>${g.homeTeam}</span>
+          <b>${g.homeOdds ?? '-'}</b>
+          <span>vs</span>
+          <b>${g.awayOdds ?? '-'}</b>
+          <span>${g.awayTeam}</span>
+          <img src="${g.awayLogo}" alt="${g.awayTeam}" class="team-logo">
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    container.innerHTML = `<h2>Predikcie – Kurzy bookmakerov</h2>`;
+    container.appendChild(list);
+
   } catch (err) {
     console.error("❌ Chyba pri načítaní predikcií:", err);
-    content.innerHTML = `<p style="color:red;">Chyba pri načítaní dát: ${err.message}</p>`;
+    container.innerHTML = `<p>Chyba pri načítaní kurzov: ${err.message}</p>`;
   }
 }
 
@@ -326,4 +329,5 @@ document
 // === Štart ===
 window.addEventListener("DOMContentLoaded", () => {
   fetchMatches();
+  displayPredictions(); // 🔹 pridaj túto funkciu
 });
