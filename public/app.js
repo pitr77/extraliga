@@ -295,46 +295,50 @@ async function displayPredictions() {
       return;
     }
 
-    const table = document.createElement("table");
-    table.className = "odds-table";
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Zápas</th>
-          <th>1</th>
-          <th>X</th>
-          <th>2</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `;
+    const list = document.createElement("div");
+    list.className = "odds-blocks";
 
-    const tbody = table.querySelector("tbody");
+    data.games.forEach(game => {
+      const home = game.homeTeam?.name?.default || "-";
+      const away = game.awayTeam?.name?.default || "-";
+      const homeLogo = game.homeTeam?.logo || "";
+      const awayLogo = game.awayTeam?.logo || "";
 
-    data.games.forEach(g => {
-      const home = g.homeTeam;
-      const away = g.awayTeam;
-      const homeOdds = g.bookmakers?.[0]?.homeOdds ?? "-";
-      const awayOdds = g.bookmakers?.[0]?.awayOdds ?? "-";
+      // Hľadáme kurzy z MONEY_LINE_3_WAY (1, X, 2)
+      const homeML3 = game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
+      const drawML3 = game.homeTeam?.odds?.find(o => o.qualifier === "Draw")?.value;
+      const awayML3 = game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
 
-      // Skús získať aj X (remízu), ak existuje
-      const drawOdds =
-        g.homeTeamOdds?.find(o => o.qualifier === "Draw")?.value ||
-        g.awayTeamOdds?.find(o => o.qualifier === "Draw")?.value ||
-        "-";
+      // fallback – ak nie je 3-way, použijeme 2-way
+      const homeOdds = homeML3 ?? game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
+      const drawOdds = drawML3 ?? "-";
+      const awayOdds = awayML3 ?? game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
 
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td><b>${home}</b> – <b>${away}</b></td>
-        <td>${homeOdds}</td>
-        <td>${drawOdds}</td>
-        <td>${awayOdds}</td>
+      const hasDraw = drawOdds !== "-";
+
+      const match = document.createElement("div");
+      match.className = "odds-match";
+      match.innerHTML = `
+        <div class="match-header">
+          <img src="${homeLogo}" class="team-logo">
+          <span>${home}</span>
+          <span class="vs">–</span>
+          <span>${away}</span>
+          <img src="${awayLogo}" class="team-logo">
+        </div>
+
+        <div class="odds-row">
+          <div class="odds-cell"><b>1</b><br>${homeOdds}</div>
+          ${hasDraw ? `<div class="odds-cell"><b>X</b><br>${drawOdds}</div>` : ""}
+          <div class="odds-cell"><b>2</b><br>${awayOdds}</div>
+        </div>
       `;
-      tbody.appendChild(row);
+
+      list.appendChild(match);
     });
 
     container.innerHTML = `<h2>Predikcie – Kurzy bookmakerov</h2>`;
-    container.appendChild(table);
+    container.appendChild(list);
 
   } catch (err) {
     console.error("❌ Chyba pri načítaní predikcií:", err);
