@@ -191,7 +191,6 @@ async function fetchMatches() {
   }
 }
 
-
 // === Zápasy ===
 function displayMatches(matches) {
   const tableBody = document.querySelector("#matches tbody");
@@ -276,6 +275,53 @@ function displayMantingal() {
     <table><tr><td>Mantingal sa zapne po pripojení hráčskych štatistík (boxscore).</td></tr></table>
   `;
 }
+
+// === 🧠 PREDICTIONS: načítanie kurzov bookmakerov ===
+async function fetchPredictions() {
+  const content = document.getElementById("predictions-content");
+  if (!content) return;
+
+  content.innerHTML = "<p>Načítavam aktuálne kurzy...</p>";
+
+  try {
+    const resp = await fetch("/api/predictions");
+    const data = await resp.json();
+
+    if (!data.games || !data.games.length) {
+      content.innerHTML = "<p>Žiadne dostupné kurzy.</p>";
+      return;
+    }
+
+    const html = data.games
+      .map(game => `
+        <div class="prediction-card">
+          <div class="matchup">
+            <span>${game.homeTeam}</span> vs <span>${game.awayTeam}</span>
+          </div>
+          <div class="odds-list">
+            ${game.bookmakers.map(line => `
+              <div class="bookmaker">
+                <span class="provider">${line.provider}</span>
+                <span>Domáci: <b>${line.homeOdds ?? "-"}</b></span>
+                <span>Hostia: <b>${line.awayOdds ?? "-"}</b></span>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `)
+      .join("");
+
+    content.innerHTML = html;
+  } catch (err) {
+    console.error("❌ Chyba pri načítaní predikcií:", err);
+    content.innerHTML = `<p style="color:red;">Chyba pri načítaní dát: ${err.message}</p>`;
+  }
+}
+
+// 🔁 Načítaj predikcie, keď sa otvorí sekcia
+document
+  .querySelector("button[onclick*='predictions-section']")
+  ?.addEventListener("click", fetchPredictions);
 
 // === Štart ===
 window.addEventListener("DOMContentLoaded", () => {
