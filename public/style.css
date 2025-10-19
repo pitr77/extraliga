@@ -890,6 +890,39 @@ nav button:hover::after {
   object-fit: contain;
   filter: drop-shadow(0 0 5px rgba(0,183,255,0.5));
 }
+/* ====== PREDICTIONS TABUĽKA ====== */
+.odds-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  background: rgba(0, 20, 35, 0.8);
+  border: 1px solid rgba(0, 234, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.odds-table th, .odds-table td {
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 234, 255, 0.1);
+}
+
+.odds-table th {
+  color: #00eaff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.9rem;
+}
+
+.odds-table td {
+  color: #eaf9ff;
+  font-size: 1rem;
+}
+
+.odds-table tr:hover {
+  background: rgba(0, 234, 255, 0.1);
+  transition: 0.3s ease;
+}
 
 /* 📱 Mobilné zobrazenie – len rolovacie menu, bez tohto štýlu */
 @media (max-width: 768px) {
