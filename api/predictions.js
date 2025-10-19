@@ -1,6 +1,4 @@
 // /api/predictions.js
-// novy riadok
-
 export default async function handler(req, res) {
   try {
     const url = "https://api-web.nhle.com/v1/partner-game/CZ/now";
