@@ -324,9 +324,10 @@ async function displayPredictions() {
 // 🔁 Načítaj predikcie, keď sa otvorí sekcia
 document
   .querySelector("button[onclick*='predictions-section']")
-  ?.addEventListener("click", fetchPredictions);
+  ?.addEventListener("click", displayPredictions);
 
 // === Štart ===
 window.addEventListener("DOMContentLoaded", () => {
   fetchMatches();
+  displayPredictions(); // 🔹 pridaj túto funkciu
 });
