@@ -276,12 +276,15 @@ function displayMantingal() {
   `;
 }
 
-// === Predikcie – kurzy bookmakerov ===
+// === Predikcie – Kurzy bookmakerov ===
 async function displayPredictions() {
   const container = document.getElementById("predictions-section");
   if (!container) return;
 
-  container.innerHTML = `<h2>Predikcie – Kurzy bookmakerov</h2><p>Načítavam aktuálne kurzy...</p>`;
+  container.innerHTML = `
+    <h2>Predikcie – Kurzy bookmakerov</h2>
+    <p>Načítavam aktuálne kurzy...</p>
+  `;
 
   try {
     const resp = await fetch("/api/predictions");
@@ -292,28 +295,46 @@ async function displayPredictions() {
       return;
     }
 
-    const list = document.createElement("div");
-    list.className = "odds-list";
+    const table = document.createElement("table");
+    table.className = "odds-table";
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Zápas</th>
+          <th>1</th>
+          <th>X</th>
+          <th>2</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
 
     data.games.forEach(g => {
-      const row = document.createElement("div");
-      row.className = "odds-item";
+      const home = g.homeTeam;
+      const away = g.awayTeam;
+      const homeOdds = g.bookmakers?.[0]?.homeOdds ?? "-";
+      const awayOdds = g.bookmakers?.[0]?.awayOdds ?? "-";
+
+      // Skús získať aj X (remízu), ak existuje
+      const drawOdds =
+        g.homeTeamOdds?.find(o => o.qualifier === "Draw")?.value ||
+        g.awayTeamOdds?.find(o => o.qualifier === "Draw")?.value ||
+        "-";
+
+      const row = document.createElement("tr");
       row.innerHTML = `
-        <div class="match-info">
-          <img src="${g.homeLogo}" alt="${g.homeTeam}" class="team-logo">
-          <span>${g.homeTeam}</span>
-          <b>${g.homeOdds ?? '-'}</b>
-          <span>vs</span>
-          <b>${g.awayOdds ?? '-'}</b>
-          <span>${g.awayTeam}</span>
-          <img src="${g.awayLogo}" alt="${g.awayTeam}" class="team-logo">
-        </div>
+        <td><b>${home}</b> – <b>${away}</b></td>
+        <td>${homeOdds}</td>
+        <td>${drawOdds}</td>
+        <td>${awayOdds}</td>
       `;
-      list.appendChild(row);
+      tbody.appendChild(row);
     });
 
     container.innerHTML = `<h2>Predikcie – Kurzy bookmakerov</h2>`;
-    container.appendChild(list);
+    container.appendChild(table);
 
   } catch (err) {
     console.error("❌ Chyba pri načítaní predikcií:", err);
