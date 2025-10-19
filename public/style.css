@@ -924,6 +924,78 @@ nav button:hover::after {
   transition: 0.3s ease;
 }
 
+/* ======== BLOKY PREDIKCIÍ ======== */
+.odds-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.odds-match {
+  background: rgba(0, 20, 40, 0.8);
+  border: 1px solid rgba(0, 234, 255, 0.2);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(0, 234, 255, 0.1);
+  transition: 0.3s ease;
+}
+
+.odds-match:hover {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+  transform: translateY(-3px);
+}
+
+.match-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-weight: 700;
+  color: #00eaff;
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+}
+
+.team-logo {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px rgba(0, 234, 255, 0.5));
+}
+
+.vs {
+  color: #ffd400;
+  font-weight: bold;
+  margin: 0 4px;
+}
+
+.odds-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+
+.odds-cell {
+  background: rgba(0, 234, 255, 0.1);
+  border: 1px solid rgba(0, 234, 255, 0.2);
+  border-radius: 8px;
+  width: 70px;
+  padding: 8px;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 0 6px rgba(0, 234, 255, 0.1);
+}
+
+.odds-cell b {
+  color: #ffd400;
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+}
+
 /* 📱 Mobilné zobrazenie – len rolovacie menu, bez tohto štýlu */
 @media (max-width: 768px) {
   nav {
