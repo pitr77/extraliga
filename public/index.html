@@ -117,7 +117,7 @@
         });
     </script>
 
-   <script>
+<script>
   // 🖥️ Klikateľné menu na PC
   const navButtons = document.querySelectorAll("nav button");
   const sections = document.querySelectorAll(".section");
@@ -131,7 +131,7 @@
   navButtons.forEach(btn => {
     btn.addEventListener("click", () => {
       const targetId = btn.getAttribute("onclick")
-        ?.match(/'(.*?)'/)?.[1]; // získa hodnotu z onclick='showSection("...")'
+        ?.match(/'(.*?)'/)?.[1];
       if (targetId) showSection(targetId);
     });
   });
@@ -148,15 +148,13 @@
     if (val === "predictions") document.getElementById("predictions-section").style.display = "block";
   });
 
-  // 🧭 Predvolené zobrazenie
+  // 🧭 Predvolené zobrazenie – len Výsledky
   document.addEventListener("DOMContentLoaded", () => {
-    // na PC zobrazíme Výsledky
-    if (window.innerWidth > 768) {
-      showSection("matches-section");
-    } else {
-      // na mobile Výsledky ostanú rovnako
-      document.getElementById("matches-section").style.display = "block";
-    }
+    // všetky sekcie skry
+    sections.forEach(sec => sec.style.display = "none");
+
+    // zobraz iba Výsledky
+    document.getElementById("matches-section").style.display = "block";
   });
 </script>
 
