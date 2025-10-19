@@ -8,7 +8,6 @@ const BASE_STAKE = 1;
 const ODDS = 2.5;
 const API_BASE = "";
 
-// pridany prvy riadok ===
 // === Nastavenie dátumov pre sezónu 2025/26 ===
 const START_DATE = "2025-10-08"; // prvé zápasy novej sezóny
 const TODAY = new Date().toISOString().slice(0, 10); // dnešný dátum
@@ -277,50 +276,6 @@ function displayMantingal() {
     <table><tr><td>Mantingal sa zapne po pripojení hráčskych štatistík (boxscore).</td></tr></table>
   `;
 }
-
-// === Načítavanie predikcií ===
-async function loadPredictions() {
-  try {
-    const res = await fetch("/api/predictions");
-    const data = await res.json();
-
-    const tbody = document.querySelector("#predictions tbody");
-    tbody.innerHTML = "";
-
-    data.games.forEach(g => {
-      g.bookmakers.forEach(line => {
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${g.homeTeam}</td>
-          <td>${g.awayTeam}</td>
-          <td>${line.provider}</td>
-          <td>${line.homeOdds}</td>
-          <td>${line.awayOdds}</td>
-        `;
-        tbody.appendChild(row);
-      });
-    });
-  } catch (err) {
-    console.error("❌ Chyba pri načítaní kurzov:", err);
-  }
-}
-
-// načítame kurzy, keď sa otvorí sekcia Predikcie
-document.addEventListener("DOMContentLoaded", () => {
-  const predictionsSection = document.getElementById("predictions-section");
-  const mobileSelect = document.getElementById("mobileSelect");
-
-  mobileSelect?.addEventListener("change", (e) => {
-    if (e.target.value === "predictions") loadPredictions();
-  });
-
-  // pre PC menu
-  document.querySelectorAll("nav button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (btn.dataset.section === "predictions") loadPredictions();
-    });
-  });
-});
 
 // === Štart ===
 window.addEventListener("DOMContentLoaded", () => {
