@@ -277,6 +277,50 @@ function displayMantingal() {
   `;
 }
 
+// === Načítavanie predikcií ===
+async function loadPredictions() {
+  try {
+    const res = await fetch("/api/predictions");
+    const data = await res.json();
+
+    const tbody = document.querySelector("#predictions tbody");
+    tbody.innerHTML = "";
+
+    data.games.forEach(g => {
+      g.bookmakers.forEach(line => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${g.homeTeam}</td>
+          <td>${g.awayTeam}</td>
+          <td>${line.provider}</td>
+          <td>${line.homeOdds}</td>
+          <td>${line.awayOdds}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    });
+  } catch (err) {
+    console.error("❌ Chyba pri načítaní kurzov:", err);
+  }
+}
+
+// načítame kurzy, keď sa otvorí sekcia Predikcie
+document.addEventListener("DOMContentLoaded", () => {
+  const predictionsSection = document.getElementById("predictions-section");
+  const mobileSelect = document.getElementById("mobileSelect");
+
+  mobileSelect?.addEventListener("change", (e) => {
+    if (e.target.value === "predictions") loadPredictions();
+  });
+
+  // pre PC menu
+  document.querySelectorAll("nav button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.section === "predictions") loadPredictions();
+    });
+  });
+});
+
 // === Štart ===
 window.addEventListener("DOMContentLoaded", () => {
   fetchMatches();
