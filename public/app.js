@@ -329,5 +329,4 @@ document
 // === Štart ===
 window.addEventListener("DOMContentLoaded", () => {
   fetchMatches();
-  displayPredictions(); // 🔹 pridaj túto funkciu
 });
