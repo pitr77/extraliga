@@ -596,6 +596,114 @@ header {
   }
 }
 
+/* -------------------------------
+   HEADER / HLAVIČKA
+----------------------------------*/
+
+header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(90deg, rgba(0, 40, 70, 0.8), rgba(0, 10, 25, 0.9));
+  border-bottom: 1px solid rgba(0, 183, 255, 0.3);
+  padding: 1rem 2rem;
+  overflow: hidden;
+}
+
+/* logo a text vlavo */
+.header-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 2;
+}
+
+.header-left img {
+  width: 80px;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 8px rgba(0, 183, 255, 0.5));
+}
+
+.header-left span {
+  margin-top: 0.4rem;
+  color: #00b7ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-shadow: 0 0 5px rgba(0, 183, 255, 0.4);
+}
+
+/* žltý text v strede */
+.header-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-2deg);
+  font-family: "Permanent Marker", cursive;
+  font-size: clamp(22px, 2.5vw, 32px);
+  color: #ffd400;
+  text-shadow: 0 2px 3px rgba(0,0,0,0.5), 0 0 15px rgba(255, 208, 0, 0.4);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* pozadie loga — vypnuté na PC */
+header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: none;
+  opacity: 0;
+  z-index: 1;
+}
+
+/* -------------------------------
+   MOBILNÉ ZOBRAZENIE
+----------------------------------*/
+@media (max-width: 768px) {
+  /* skry logo aj text vľavo */
+  .header-left img,
+  .header-left span {
+    display: none !important;
+  }
+
+  /* pozadie NHL logo */
+  header::before {
+    background: url("public/nhl_logo.png") center/contain no-repeat;
+    opacity: 0.08;
+  }
+
+  /* žltý text vycentrovaný */
+  .header-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-2deg);
+    text-align: center;
+    font-size: clamp(22px, 6vw, 30px);
+  }
+}
+
+/* -------------------------------
+   DESKTOP (PC) ZOBRAZENIE
+----------------------------------*/
+@media (min-width: 769px) {
+  /* zobraz logo vľavo + text pod ním */
+  .header-left img {
+    display: block;
+  }
+
+  .header-left span {
+    display: block;
+  }
+
+  /* odstráň pozadie loga */
+  header::before {
+    background: none;
+    opacity: 0;
+  }
+}
 
 
 
