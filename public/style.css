@@ -571,6 +571,28 @@ button:hover {
   }
 }
 
+/* 📱 Mobilné zobrazenie – zobraz iba rolovacie menu */
+@media (max-width: 768px) {
+  nav {
+    display: none !important; /* skry horizontálne menu */
+  }
+  .mobile-menu {
+    display: block !important; /* zobraz rolovacie menu */
+    margin: 1rem auto;
+    text-align: center;
+  }
+}
+
+/* 💻 Desktop zobrazenie – zobraz horizontálne menu, skry rolovacie */
+@media (min-width: 769px) {
+  nav {
+    display: flex !important;
+  }
+  .mobile-menu {
+    display: none !important;
+  }
+}
+
 
 
 
