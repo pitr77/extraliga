@@ -10,25 +10,20 @@
 <body>
 
     <!-- 🔹 HLAVIČKA -->
-<header class="main-header">
+<header>
   <div class="header-left">
-    <img src="./public/nhl_logo.png" alt="NHL Logo" class="nhl-logo">
-    <div class="season-text">NHL 2025 – 2026</div>
+    <img src="public/nhl_logo.png" alt="NHL logo">
+    <span>NHL 2025 – 2026</span>
   </div>
-  <div class="header-center">
-    <h1 class="header-title">Tipuj NHL ako profík!</h1>
-  </div>
+  <div class="header-center">Tipuj NHL ako profík!</div>
 </header>
 
-<!-- 🔹 NAVIGÁCIA PRE PC -->
-<nav class="desktop-nav">
-  <ul>
-    <li data-target="matches-section">Výsledky</li>
-    <li data-target="teams-section">Rating tímov</li>
-    <li data-target="players-section">Rating hráčov</li>
-    <li data-target="mantingal-container">Mantingal</li>
-    <li data-target="predictions-section">Predikcie</li>
-  </ul>
+<nav>
+  <button onclick="showSection('matches-section')">Výsledky</button>
+  <button onclick="showSection('teams-section')">Rating tímov</button>
+  <button onclick="showSection('players-section')">Rating hráčov</button>
+  <button onclick="showSection('mantingal-container')">Mantingal</button>
+  <button onclick="showSection('predictions-section')">Predikcie</button>
 </nav>
     
     <!-- 📱 mobilné menu -->
@@ -85,6 +80,23 @@
                 </thead>
                 <tbody></tbody>
             </table>
+            
+        <!-- 🔮 Predikcie -->
+        <div class="section" id="predictions-section" style="display:none;">
+        <h2>Predikcie (Kurzy)</h2>
+        <table id="predictions">
+            <thead>
+            <tr>
+                <th>Domáci</th>
+                <th>Hostia</th>
+                <th>Bookmaker</th>
+                <th>Kurz domáci</th>
+                <th>Kurz hostia</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        </div>
 
             <!-- Mantingal sa vloží pod rating hráčov v PC -->
             <div id="mantingal-container-pc"></div>
