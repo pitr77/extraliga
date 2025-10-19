@@ -117,15 +117,48 @@
         });
     </script>
 
-    <script>
+   <script>
   // 🖥️ Klikateľné menu na PC
-  document.querySelectorAll(".desktop-nav li").forEach((item) => {
-    item.addEventListener("click", () => {
-      const target = item.getAttribute("data-target");
-      document.querySelectorAll(".section").forEach(sec => sec.style.display = "none");
-      document.getElementById(target).style.display = "block";
+  const navButtons = document.querySelectorAll("nav button");
+  const sections = document.querySelectorAll(".section");
+
+  function showSection(id) {
+    sections.forEach(sec => sec.style.display = "none");
+    const section = document.getElementById(id);
+    if (section) section.style.display = "block";
+  }
+
+  navButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const targetId = btn.getAttribute("onclick")
+        ?.match(/'(.*?)'/)?.[1]; // získa hodnotu z onclick='showSection("...")'
+      if (targetId) showSection(targetId);
     });
   });
+
+  // 📱 Mobile menu - ostáva pôvodná logika
+  document.getElementById("mobileSelect").addEventListener("change", (e) => {
+    const val = e.target.value;
+    document.querySelectorAll(".section").forEach(sec => sec.style.display = "none");
+
+    if (val === "matches") document.getElementById("matches-section").style.display = "block";
+    if (val === "teams") document.getElementById("teams-section").style.display = "block";
+    if (val === "players") document.getElementById("players-section").style.display = "block";
+    if (val === "mantingal") document.getElementById("mantingal-container").style.display = "block";
+    if (val === "predictions") document.getElementById("predictions-section").style.display = "block";
+  });
+
+  // 🧭 Predvolené zobrazenie
+  document.addEventListener("DOMContentLoaded", () => {
+    // na PC zobrazíme Výsledky
+    if (window.innerWidth > 768) {
+      showSection("matches-section");
+    } else {
+      // na mobile Výsledky ostanú rovnako
+      document.getElementById("matches-section").style.display = "block";
+    }
+  });
 </script>
+
 </body>
 </html>
