@@ -3,7 +3,7 @@
 export default async function handler(req, res) {
   try {
     const url = "https://api-web.nhle.com/v1/partner-game/CZ/now";
-    const resp = await fetch(url);
+    const resp = await fetch(url, { cache: "no-store" }); // ⬅️ zamedzí použitiu cache
     if (!resp.ok) throw new Error(`NHL odds fetch failed: ${resp.status}`);
 
     const data = await resp.json();
