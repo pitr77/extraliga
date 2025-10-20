@@ -299,24 +299,13 @@ async function displayPredictions() {
     list.className = "odds-blocks";
 
     data.games.forEach(game => {
-      const home = game.homeTeam?.name?.default || "-";
-      const away = game.awayTeam?.name?.default || "-";
-      const homeLogo = game.homeTeam?.logo || "";
-      const awayLogo = game.awayTeam?.logo || "";
+      const home = game.homeTeam || "-";
+      const away = game.awayTeam || "-";
+      const homeLogo = game.homeLogo || "";
+      const awayLogo = game.awayLogo || "";
+      const homeOdds = game.homeOdds ?? "-";
+      const awayOdds = game.awayOdds ?? "-";
 
-      // --- Získaj kurzy ---
-      const homeOdds3 = game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
-      const drawOdds3 = game.homeTeam?.odds?.find(o => o.qualifier === "Draw")?.value;
-      const awayOdds3 = game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
-
-      // fallback – ak nie je 3-way, použijeme 2-way
-      const homeOdds = homeOdds3 ?? game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
-      const drawOdds = drawOdds3 ?? "-";
-      const awayOdds = awayOdds3 ?? game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
-
-      const hasDraw = drawOdds !== "-";
-
-      // --- HTML blok ---
       const match = document.createElement("div");
       match.className = "odds-match";
       match.innerHTML = `
@@ -329,9 +318,8 @@ async function displayPredictions() {
         </div>
 
         <div class="odds-row">
-          <div class="odds-cell"><b>1</b><br>${homeOdds !== undefined ? homeOdds : "-"}</div>
-          ${hasDraw ? `<div class="odds-cell"><b>X</b><br>${drawOdds}</div>` : ""}
-          <div class="odds-cell"><b>2</b><br>${awayOdds !== undefined ? awayOdds : "-"}</div>
+          <div class="odds-cell"><b>1</b><br>${homeOdds}</div>
+          <div class="odds-cell"><b>2</b><br>${awayOdds}</div>
         </div>
       `;
       list.appendChild(match);
