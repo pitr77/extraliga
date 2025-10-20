@@ -937,16 +937,16 @@ nav button:hover::after {
   border: 1px solid rgba(0, 234, 255, 0.2);
   border-radius: 10px;
   padding: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.2rem;
   text-align: center;
-  box-shadow: 0 0 10px rgba(0, 234, 255, 0.1);
+  box-shadow: 0 0 10px rgba(0, 234, 255, 0.15);
 }
 
 .match-header {
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 0.8rem;
+  justify-content: center;
+  gap: 0.6rem;
   margin-bottom: 0.6rem;
 }
 
