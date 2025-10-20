@@ -304,36 +304,36 @@ async function displayPredictions() {
       const homeLogo = game.homeTeam?.logo || "";
       const awayLogo = game.awayTeam?.logo || "";
 
-      // nájdeme MONEY_LINE_3_WAY kurzy
+      // --- Získaj kurzy ---
       const homeOdds3 = game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
       const drawOdds3 = game.homeTeam?.odds?.find(o => o.qualifier === "Draw")?.value;
       const awayOdds3 = game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_3_WAY" && !o.qualifier)?.value;
 
-      // fallback na 2-way
+      // fallback – ak nie je 3-way, použijeme 2-way
       const homeOdds = homeOdds3 ?? game.homeTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
       const drawOdds = drawOdds3 ?? "-";
       const awayOdds = awayOdds3 ?? game.awayTeam?.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value ?? "-";
 
       const hasDraw = drawOdds !== "-";
 
+      // --- HTML blok ---
       const match = document.createElement("div");
       match.className = "odds-match";
       match.innerHTML = `
         <div class="match-header">
-          <img src="${homeLogo}" class="team-logo" alt="${home}">
+          <img src="${homeLogo}" alt="${home}" class="team-logo">
           <span class="team-name">${home}</span>
           <span class="vs">–</span>
           <span class="team-name">${away}</span>
-          <img src="${awayLogo}" class="team-logo" alt="${away}">
+          <img src="${awayLogo}" alt="${away}" class="team-logo">
         </div>
 
         <div class="odds-row">
-          <div class="odds-cell"><b>1</b><br>${homeOdds}</div>
+          <div class="odds-cell"><b>1</b><br>${homeOdds !== undefined ? homeOdds : "-"}</div>
           ${hasDraw ? `<div class="odds-cell"><b>X</b><br>${drawOdds}</div>` : ""}
-          <div class="odds-cell"><b>2</b><br>${awayOdds}</div>
+          <div class="odds-cell"><b>2</b><br>${awayOdds !== undefined ? awayOdds : "-"}</div>
         </div>
       `;
-
       list.appendChild(match);
     });
 
