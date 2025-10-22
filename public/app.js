@@ -1,5 +1,248 @@
 // public/app.js
 
+
+// === STANDINGS ===
+async function displayStandings() {
+  console.log("📊 [STANDINGS] Načítavam dáta...");
+  try {
+    const res = await fetch("/api/nhl?type=standings");
+    const data = await res.json();
+    console.log("✅ [STANDINGS] Dáta:", data);
+
+    const teams = data?.standings?.[0]?.teamRecords || [];
+    const body = document.querySelector("#standings-table tbody");
+
+    if (!teams.length) {
+      body.innerHTML = `<tr><td colspan="5">Žiadne dáta</td></tr>`;
+      console.warn("⚠️ [STANDINGS] Prázdne pole standings");
+      return;
+    }
+
+    body.innerHTML = teams
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 7)
+      .map(
+        t => `<tr>
+                <td>${t.teamName?.default || "?"}</td>
+                <td>${t.gamesPlayed}</td>
+                <td>${t.wins}</td>
+                <td>${t.losses}</td>
+                <td>${t.points}</td>
+              </tr>`
+      )
+      .join("");
+  } catch (err) {
+    console.error("❌ [STANDINGS] Chyba:", err);
+  }
+}
+
+// === SCOREBOARD ===
+async function displayScoreboard() {
+  console.log("🏒 [SCOREBOARD] Načítavam zápasy...");
+  try {
+    const res = await fetch("/api/nhl?type=scoreboard");
+    const data = await res.json();
+    console.log("✅ [SCOREBOARD] Dáta:", data);
+
+    const games = data?.games || [];
+    const body = document.querySelector("#scoreboard-table tbody");
+    if (!games.length) {
+      body.innerHTML = `<tr><td colspan="4">Žiadne zápasy</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = games
+      .slice(0, 7)
+      .map(g => `
+        <tr>
+          <td>${g.homeTeam?.teamName?.default || g.homeTeam?.abbrev || "-"}</td>
+          <td>${g.awayTeam?.teamName?.default || g.awayTeam?.abbrev || "-"}</td>
+          <td>${g.homeTeam?.score ?? "-"} : ${g.awayTeam?.score ?? "-"}</td>
+          <td>${g.gameState || "-"}</td>
+        </tr>
+      `)
+      .join("");
+  } catch (err) {
+    console.error("❌ [SCOREBOARD] Chyba:", err);
+  }
+}
+
+// === ODDS ===
+async function displayOdds() {
+ const container = document.querySelector("#nhl-section");
+  if (!container) return;
+
+  container.innerHTML = `<h2>📊 NHL Kurzy (DraftKings)</h2><p>Načítavam...</p>`;
+
+  try {
+    const res = await fetch("/api/nhl-proxy?type=odds");
+    const data = await res.json();
+    const games = data.games || [];
+
+    if (!games.length) {
+      container.innerHTML += "<p>Žiadne zápasy</p>";
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Domáci</th>
+          <th>Hostia</th>
+          <th>1 (home)</th>
+          <th>2 (away)</th>
+          <th>Dátum</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector("tbody");
+
+    games.slice(0, 10).forEach(g => {
+      const home = g.homeTeam.name?.default || g.homeTeam.abbrev;
+      const away = g.awayTeam.name?.default || g.awayTeam.abbrev;
+
+      // nájdi MONEY_LINE_2_WAY kurz
+      function toDecimal(american) {
+      if (american == null || isNaN(american)) return "-";
+      if (american > 0) return ((american / 100) + 1).toFixed(2);
+      else return ((100 / Math.abs(american)) + 1).toFixed(2);
+    }
+
+    const homeRaw = g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
+    const awayRaw = g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
+
+    const homeOdds = toDecimal(homeRaw);
+    const awayOdds = toDecimal(awayRaw);
+
+      const date = new Date(g.startTimeUTC).toLocaleString("sk-SK", {
+        weekday: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td><img src="${g.homeTeam.logo}" width="40"> ${home}</td>
+        <td><img src="${g.awayTeam.logo}" width="40"> ${away}</td>
+        <td>${homeOdds}</td>
+        <td>${awayOdds}</td>
+        <td>${date}</td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    container.innerHTML = `
+      <h2>📊 NHL Kurzy (DraftKings)</h2>
+      <p>Aktualizované: ${data.lastUpdatedUTC}</p>
+    `;
+    container.appendChild(table);
+
+  } catch (err) {
+    console.error("❌ Chyba pri fetchnutí odds:", err);
+    container.innerHTML += `<p>Chyba pri načítaní dát: ${err.message}</p>`;
+  }
+}
+
+function toDecimal(american) {
+  if (american == null || isNaN(american)) return "-";
+  if (american > 0) return ((american / 100) + 1).toFixed(2);
+  else return ((100 / Math.abs(american)) + 1).toFixed(2);
+}
+
+const homeRaw = g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
+const awayRaw = g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
+
+const homeOdds = toDecimal(homeRaw);
+const awayOdds = toDecimal(awayRaw);
+
+// === WHERE TO WATCH ===
+async function displayWhereToWatch() {
+  console.log("📺 [WATCH] Načítavam platformy...");
+  try {
+    const res = await fetch("/api/nhl?type=watch");
+    const data = await res.json();
+    console.log("✅ [WATCH] Dáta:", data);
+
+    const channels = data?.providers || [];
+    const list = document.querySelector("#watch-list");
+
+    list.innerHTML = channels
+      .slice(0, 5)
+      .map(p => `<li>${p.name} – ${p.platform}</li>`)
+      .join("");
+  } catch (err) {
+    console.error("❌ [WATCH] Chyba:", err);
+  }
+}
+
+// === PLAYERS ===
+async function displayPlayers() {
+  console.log("👤 [PLAYERS] Načítavam hráčov...");
+  try {
+    const res = await fetch("/api/nhl?type=players");
+    const data = await res.json();
+    console.log("✅ [PLAYERS] Dáta:", data);
+
+    const players = data?.data || [];
+    const body = document.querySelector("#players-table tbody");
+    if (!players.length) {
+      body.innerHTML = `<tr><td colspan="3">Žiadni hráči</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = players
+      .slice(0, 10)
+      .map(
+        p => `<tr><td>${p.firstName} ${p.lastName}</td><td>${p.teamAbbrevs}</td><td>${p.gamesPlayed}</td></tr>`
+      )
+      .join("");
+  } catch (err) {
+    console.error("❌ [PLAYERS] Chyba:", err);
+  }
+}
+
+// === Načítanie NHL sekcie ===
+async function loadNhlSection() {
+  console.log("🔹 Načítavam NHL sekciu...");
+  try {
+    await displayStandings();
+    await displayScoreboard();
+    await displayOdds();
+    await displayWhereToWatch();
+    await displayPlayers();
+    console.log("✅ NHL sekcia načítaná");
+  } catch (e) {
+    console.error("❌ Chyba pri načítaní NHL sekcie:", e);
+  }
+}
+
+
+// 🏁 Spusti po kliknutí na NHL alebo pri načítaní stránky
+document.querySelector("button[onclick*='nhl-section']")
+  ?.addEventListener("click", loadNhlSection);
+
+// alebo spusti hneď po načítaní (ak chceš testovať)
+window.addEventListener("DOMContentLoaded", loadNhlSection);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 let teamRatings = {};
 let playerRatings = {};
 let allMatches = [];
@@ -9,8 +252,8 @@ const ODDS = 2.5;
 const API_BASE = "";
 
 // === Nastavenie dátumov pre sezónu 2025/26 ===
-const START_DATE = "2025-10-08"; // prvé zápasy novej sezóny
-const TODAY = new Date().toISOString().slice(0, 10); // dnešný dátum
+const START_DATE = "2025-04-01"; // prvé zápasy novej sezóny
+const TODAY = "2025-04-10" //new Date().toISOString().slice(0, 10); // dnešný dátum
 
 // === Pomocné funkcie ===
 const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
@@ -343,4 +586,5 @@ document
 window.addEventListener("DOMContentLoaded", () => {
   fetchMatches();
   displayPredictions(); // 🔹 pridaj túto funkciu
+  loadNhlSection(); // 🏒 pridaj túto funkciu
 });

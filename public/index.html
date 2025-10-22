@@ -24,7 +24,11 @@
   <button onclick="showSection('players-section')">Rating hráčov</button>
   <button onclick="showSection('mantingal-container')">Mantingal</button>
   <button onclick="showSection('predictions-section')">Predikcie</button>
+  <button onclick="showSection('nhl-section')">NHL</button>
 </nav>
+
+
+
     
     <!-- 📱 mobilné menu -->
     <div class="mobile-menu">
@@ -88,6 +92,23 @@
         <!-- 💰 Mantingal (mobilná verzia) -->
         <div class="mantingal-mobile section" id="mantingal-container"></div>
     </div>
+
+        <div class="section" id="nhl-section">
+        <h3>Aktuálna tabuľka</h3>
+            <table id="standings-table"><tbody></tbody></table>
+
+            <h3>Prebiehajúce zápasy</h3>
+            <table id="scoreboard-table"><tbody></tbody></table>
+
+            <h3>Stávkové kurzy (odds)</h3>
+            <table id="odds-table"><tbody></tbody></table>
+
+            <h3>Kde sledovať</h3>
+            <ul id="watch-list"></ul>
+
+            <h3>Top hráči</h3>
+            <table id="players-table"><tbody></tbody></table>
+        </div>
 
         <!-- 📊 Predikcie (kurzy bookmakerov) -->
         <div class="section" id="predictions-section">
