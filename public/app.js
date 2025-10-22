@@ -146,18 +146,6 @@ async function displayOdds() {
   }
 }
 
-function toDecimal(american) {
-  if (american == null || isNaN(american)) return "-";
-  if (american > 0) return ((american / 100) + 1).toFixed(2);
-  else return ((100 / Math.abs(american)) + 1).toFixed(2);
-}
-
-const homeRaw = g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
-const awayRaw = g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
-
-const homeOdds = toDecimal(homeRaw);
-const awayOdds = toDecimal(awayRaw);
-
 // === WHERE TO WATCH ===
 async function displayWhereToWatch() {
   console.log("📺 [WATCH] Načítavam platformy...");
