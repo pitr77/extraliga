@@ -5,7 +5,7 @@
 async function displayStandings() {
   console.log("📊 [STANDINGS] Načítavam dáta...");
   try {
-    const res = await fetch("/api/nhl?type=standings");
+    const res = await fetch("/api/nhl-proxy?type=standings");
     const data = await res.json();
     console.log("✅ [STANDINGS] Dáta:", data);
 
@@ -92,6 +92,7 @@ async function displayOdds() {
           <th>Hostia</th>
           <th>1 (home)</th>
           <th>2 (away)</th>
+          <th>Pravdepodobnosť</th>
           <th>Dátum</th>
         </tr>
       </thead>
@@ -100,22 +101,40 @@ async function displayOdds() {
 
     const tbody = table.querySelector("tbody");
 
+    // ⚙️ Pomocné funkcie
+    function toDecimal(american) {
+      if (american == null || isNaN(american)) return "-";
+
+      const val = Number(american);
+      if (val > 0) {
+        return (1 + val / 100).toFixed(2);
+      } else if (val < 0) {
+        return (1 + 100 / Math.abs(val)).toFixed(2);
+      } else {
+        return "-";
+      }
+    }
+
+    function impliedProbability(decimal) {
+      if (decimal === "-" || decimal <= 1) return "-";
+      return (100 / decimal).toFixed(1) + "%";
+    }
+
     games.slice(0, 10).forEach(g => {
       const home = g.homeTeam.name?.default || g.homeTeam.abbrev;
       const away = g.awayTeam.name?.default || g.awayTeam.abbrev;
 
-      // nájdi MONEY_LINE_2_WAY kurz
-      function toDecimal(american) {
-      if (american == null || isNaN(american)) return "-";
-      if (american > 0) return ((american / 100) + 1).toFixed(2);
-      else return ((100 / Math.abs(american)) + 1).toFixed(2);
-    }
+      const homeRaw = g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY_TNB")?.value
+        ?? g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
 
-    const homeRaw = g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
-    const awayRaw = g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
+      const awayRaw = g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY_TNB")?.value
+        ?? g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
 
-    const homeOdds = toDecimal(homeRaw);
-    const awayOdds = toDecimal(awayRaw);
+      const homeOdds = parseFloat(homeRaw);
+      const awayOdds = parseFloat(awayRaw);
+
+      const homeProb = impliedProbability(homeOdds);
+      const awayProb = impliedProbability(awayOdds);
 
       const date = new Date(g.startTimeUTC).toLocaleString("sk-SK", {
         weekday: "short",
@@ -129,6 +148,7 @@ async function displayOdds() {
         <td><img src="${g.awayTeam.logo}" width="40"> ${away}</td>
         <td>${homeOdds}</td>
         <td>${awayOdds}</td>
+        <td>${homeProb} / ${awayProb}</td>
         <td>${date}</td>
       `;
       tbody.appendChild(row);
@@ -145,6 +165,11 @@ async function displayOdds() {
     container.innerHTML += `<p>Chyba pri načítaní dát: ${err.message}</p>`;
   }
 }
+
+function impliedProbability(decimal) {
+  return decimal > 1 ? 1 / decimal : 0;
+}
+
 
 // === WHERE TO WATCH ===
 async function displayWhereToWatch() {
@@ -241,7 +266,7 @@ const API_BASE = "";
 
 // === Nastavenie dátumov pre sezónu 2025/26 ===
 const START_DATE = "2025-04-01"; // prvé zápasy novej sezóny
-const TODAY = "2025-04-10" //new Date().toISOString().slice(0, 10); // dnešný dátum
+const TODAY = "2025-010-22" //new Date().toISOString().slice(0, 10); // dnešný dátum
 
 // === Pomocné funkcie ===
 const isMobile = () => window.matchMedia("(max-width: 768px)").matches;

@@ -6,7 +6,7 @@ export default async function handler(req, res) {
   const endpoints = {
     standings: "https://api-web.nhle.com/v1/standings/now",
     scoreboard: "https://api-web.nhle.com/v1/scoreboard/now",
-    odds: "https://api-web.nhle.com/v1/partner-game/US/now",
+    odds: "https://api-web.nhle.com/v1/partner-game/CZ/now",
     watch: "https://api-web.nhle.com/v1/where-to-watch",
     players: "https://api.nhle.com/stats/rest/en/players",
   };
