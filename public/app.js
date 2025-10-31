@@ -1,603 +1,413 @@
-// public/app.js
+/* =========================
+   app.js — NHL sekcia + init
+   ========================= */
 
+/* ---------- Pomocné utilky ---------- */
+const $  = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-// === STANDINGS ===
+function formatYMD(dateLike) {
+  // YYYY-MM-DD (napr. na rozsahy)
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike);
+  if (isNaN(d)) return "";
+  return d.toISOString().slice(0, 10);
+}
+
+function formatTimeLocal(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (isNaN(d)) return "-";
+  const wd = d.toLocaleDateString("sk-SK", { weekday: "short" });
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${wd} ${hh}:${mm}`;
+}
+
+/* ---------- NHL render guard ---------- */
+let NHL_INIT_DONE = false;
+
+/* ---------- STANDINGS ---------- */
 async function displayStandings() {
-  console.log("📊 [STANDINGS] Načítavam dáta...");
+  const tbody = document.querySelector("#standings-table tbody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="5">Načítavam...</td></tr>`;
+
   try {
     const res = await fetch("/api/nhl-proxy?type=standings");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    console.log("✅ [STANDINGS] Dáta:", data);
 
-    const teams = data?.standings?.[0]?.teamRecords || [];
-    const body = document.querySelector("#standings-table tbody");
+    // data.standings je pole sekcií. Chceme overall/league.
+    const sections = Array.isArray(data?.standings) ? data.standings : [];
+    const pick =
+      sections.find(s =>
+        /overall|league/i.test(s?.standingsType || s?.type || s?.label || "")
+      )
+      || sections.find(s => Array.isArray(s?.teamRecords) && s.teamRecords.length)
+      || { teamRecords: [] };
 
-    if (!teams.length) {
-      body.innerHTML = `<tr><td colspan="5">Žiadne dáta</td></tr>`;
-      console.warn("⚠️ [STANDINGS] Prázdne pole standings");
+    const rows = Array.isArray(pick.teamRecords) ? pick.teamRecords : [];
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="5">Žiadne dáta</td></tr>`;
       return;
     }
 
-    body.innerHTML = teams
-      .sort((a, b) => b.points - a.points)
-      .slice(0, 7)
-      .map(
-        t => `<tr>
-                <td>${t.teamName?.default || "?"}</td>
-                <td>${t.gamesPlayed}</td>
-                <td>${t.wins}</td>
-                <td>${t.losses}</td>
-                <td>${t.points}</td>
-              </tr>`
-      )
-      .join("");
-  } catch (err) {
-    console.error("❌ [STANDINGS] Chyba:", err);
+    const name = t =>
+      t.teamName?.default || t.teamCommonName?.default || t.team?.name || t.team?.abbrev || "-";
+    const gp  = t => t.gamesPlayed ?? t.gp ?? "-";
+    const w   = t => t.wins ?? t.w ?? "-";
+    const l   = t => t.losses ?? t.l ?? "-";
+    const pts = t => t.points ?? t.pts ?? 0;
+
+    tbody.innerHTML = rows
+      .slice()
+      .sort((a, b) => Number(pts(b)) - Number(pts(a)))
+      .map(t => `
+        <tr>
+          <td>${name(t)}</td>
+          <td>${gp(t)}</td>
+          <td>${w(t)}</td>
+          <td>${l(t)}</td>
+          <td>${pts(t)}</td>
+        </tr>
+      `).join("");
+  } catch (e) {
+    console.error("❌ [STANDINGS] Chyba:", e);
+    tbody.innerHTML = `<tr><td colspan="5">API dočasne nedostupné.</td></tr>`;
   }
 }
 
-// === SCOREBOARD ===
-async function displayScoreboard() {
-  console.log("🏒 [SCOREBOARD] Načítavam zápasy...");
-  try {
-    const res = await fetch("/api/nhl?type=scoreboard");
-    const data = await res.json();
-    console.log("✅ [SCOREBOARD] Dáta:", data);
 
-    const games = data?.games || [];
-    const body = document.querySelector("#scoreboard-table tbody");
+
+
+/* ---------- SCOREBOARD (prebiehajúce/zapasy dňa) ---------- */
+// === STANDINGS (deep-scan verzia) ===
+function formatTimeLocal(v){
+  const d = new Date(v);
+  if (isNaN(d)) return "-";
+  const wd = d.toLocaleDateString("sk-SK",{weekday:"short"});
+  const hh = String(d.getHours()).padStart(2,"0");
+  const mm = String(d.getMinutes()).padStart(2,"0");
+  return `${wd} ${hh}:${mm}`;
+}
+
+async function displayScoreboard() {
+  const tbody = document.querySelector("#scoreboard-table tbody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="4">Načítavam...</td></tr>`;
+
+  try {
+    const res = await fetch("/api/nhl-proxy?type=scoreboard");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // API typicky: gamesByDate[ { date, games: [...] } ]
+    const byDate = Array.isArray(data?.gamesByDate) ? data.gamesByDate : [];
+    const games = byDate.flatMap(d => d.games || []);
+
     if (!games.length) {
-      body.innerHTML = `<tr><td colspan="4">Žiadne zápasy</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="4">Žiadne zápasy</td></tr>`;
       return;
     }
 
-    body.innerHTML = games
-      .slice(0, 7)
+    const team = t => t?.teamName?.default || t?.abbrev || t?.name || "-";
+    const stateRank = s => ({ LIVE:0, LIVE_CRIT:0, PRE:1, FUT:1, FINAL:2, OFF:3 }[s] ?? 3);
+    const start = g => new Date(g.startTimeUTC || g.startTime || g.gameDate || 0).getTime();
+    const status = g => {
+      const st = g.gameState || g.gameStatus || "";
+      const pd = g.periodDescriptor || {};
+      const clock = g.clock?.timeRemaining || g.clock?.timeRemainingFormatted || "";
+      if (st === "LIVE" || st === "LIVE_CRIT") {
+        const per = pd.number ? `P${pd.number}` : (pd.periodType || "LIVE");
+        return clock ? `${per} • ${clock}` : per;
+      }
+      if (st === "FINAL") {
+        const extra = (pd.periodType === "OT" || pd.periodType === "SO") ? ` • ${pd.periodType}` : "";
+        return `Final${extra}`;
+      }
+      if (st === "PRE" || st === "FUT") return formatTimeLocal(g.startTimeUTC || g.startTime);
+      return st || "-";
+    };
+
+    const rows = games
+      .slice()
+      .sort((a,b) => stateRank(a.gameState)-stateRank(b.gameState) || start(a)-start(b))
       .map(g => `
-        <tr>
-          <td>${g.homeTeam?.teamName?.default || g.homeTeam?.abbrev || "-"}</td>
-          <td>${g.awayTeam?.teamName?.default || g.awayTeam?.abbrev || "-"}</td>
+        <tr class="${(g.gameState||"").toLowerCase()}">
+          <td>${team(g.homeTeam)}</td>
+          <td>${team(g.awayTeam)}</td>
           <td>${g.homeTeam?.score ?? "-"} : ${g.awayTeam?.score ?? "-"}</td>
-          <td>${g.gameState || "-"}</td>
+          <td>${status(g)}</td>
+        </tr>
+      `).join("");
+
+    tbody.innerHTML = rows;
+  } catch (e) {
+    console.error("❌ [SCOREBOARD] Chyba:", e);
+    tbody.innerHTML = `<tr><td colspan="4">API dočasne nedostupné.</td></tr>`;
+  }
+}
+
+// zistí, či objekt vyzerá ako "záznam tímu" zo standings
+function looksLikeTeamRecord(x) {
+  if (!x || typeof x !== "object") return false;
+  const nameOk =
+    x.teamName?.default || x.teamName || x.team?.name || x.team?.commonName || x.abbrev;
+  const ptsOk =
+    typeof x.points === "number" || typeof x.pts === "number" || typeof x.pointTotal === "number";
+  const gpOk =
+    typeof x.gamesPlayed === "number" || typeof x.gp === "number" || typeof x.games === "number";
+  return !!(nameOk && (ptsOk || gpOk));
+}
+
+// prehľadá ľubovoľný JSON do hĺbky a pozbiera polia, ktoré vyzerajú ako pole teamRecords
+function deepFindTeamArrays(root) {
+  const out = [];
+  const seen = new Set();
+  (function visit(n) {
+    if (!n || typeof n !== "object") return;
+    if (seen.has(n)) return;
+    seen.add(n);
+
+    if (Array.isArray(n)) {
+      if (n.length && typeof n[0] === "object" && looksLikeTeamRecord(n[0])) out.push(n);
+      for (const v of n) visit(v);
+      return;
+    }
+    for (const k in n) visit(n[k]);
+  })(root);
+  return out;
+}
+
+// bezpečné čítačky
+const teamNameOf = (t) =>
+  t.teamName?.default ||
+  t.teamCommonName?.default ||
+  t.teamCommonName ||
+  t.teamName ||
+  t.team?.name ||
+  t.team?.commonName ||
+  t.team?.abbrev ||
+  t.abbrev ||
+  "-";
+
+const gpOf  = (t) => t.gamesPlayed ?? t.gp ?? t.games ?? "-";
+const wOf   = (t) => t.wins ?? t.w ?? "-";
+const lOf   = (t) => t.losses ?? t.l ?? "-";
+const ptsOf = (t) => t.points ?? t.pts ?? t.pointTotal ?? 0;
+
+async function displayStandings() {
+  const tbody = document.querySelector("#standings-table tbody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="5">Načítavam...</td></tr>`;
+
+  try {
+    const res = await fetch("/api/nhl-proxy?type=standings");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    // 1) nájdi všetky kandidátske polia kdekoľvek v odpovedi
+    const candidates = deepFindTeamArrays(data);
+
+    // 2) vyber najlepší kandidát (najdlhšie pole)
+    const rows = candidates.sort((a, b) => b.length - a.length)[0] || [];
+
+    if (!rows.length) {
+      console.warn("[STANDINGS] nenašiel som teamRecords, kľúče odpovede:", Object.keys(data || {}));
+      tbody.innerHTML = `<tr><td colspan="5">Žiadne dáta</td></tr>`;
+      return;
+    }
+
+    // 3) zoradenie a render
+    tbody.innerHTML = rows
+      .slice()
+      .sort((a, b) => Number(ptsOf(b)) - Number(ptsOf(a)))
+      .map((t) => `
+        <tr>
+          <td>${teamNameOf(t)}</td>
+          <td>${gpOf(t)}</td>
+          <td>${wOf(t)}</td>
+          <td>${lOf(t)}</td>
+          <td>${ptsOf(t)}</td>
         </tr>
       `)
       .join("");
-  } catch (err) {
-    console.error("❌ [SCOREBOARD] Chyba:", err);
+  } catch (e) {
+    console.error("❌ [STANDINGS] Chyba:", e);
+    tbody.innerHTML = `<tr><td colspan="5">API dočasne nedostupné.</td></tr>`;
   }
 }
 
-// === ODDS ===
-async function displayOdds() {
- const container = document.querySelector("#nhl-section");
-  if (!container) return;
 
-  container.innerHTML = `<h2>📊 NHL Kurzy (DraftKings)</h2><p>Načítavam...</p>`;
+
+/* ---------- ODDS (decimálne kurzy) ---------- */
+async function displayOdds() {
+  const tbody = document.querySelector("#odds-table tbody");
+  const updatedEl = document.getElementById("odds-updated");
+  if (!tbody) return;
+
+  tbody.innerHTML = `<tr><td colspan="5">Načítavam...</td></tr>`; // 5 stĺpcov: Domáci, Hostia, 1, 2, Čas
 
   try {
-    const res = await fetch("/api/nhl-proxy?type=odds");
-    const data = await res.json();
-    const games = data.games || [];
+    const r = await fetch("/api/nhl-proxy?type=odds");
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    const games = Array.isArray(data?.games) ? data.games : [];
 
     if (!games.length) {
-      container.innerHTML += "<p>Žiadne zápasy</p>";
+      tbody.innerHTML = `<tr><td colspan="5">Žiadne zápasy / kurzy</td></tr>`;
+      updatedEl && (updatedEl.textContent = "");
       return;
     }
 
-    const table = document.createElement("table");
-    table.innerHTML = `
-      <thead>
+    tbody.innerHTML = games.map(g => {
+      // názvy tímov
+      const homeName = g.homeTeam?.name?.default || g.homeTeam?.abbrev || "-";
+      const awayName = g.awayTeam?.name?.default || g.awayTeam?.abbrev || "-";
+
+      // >>> tvoje dve riadky – POZOR: tu používaj "g", nie "game"
+      const h = g?.homeTeam?.odds?.find(o => o.description?.startsWith("MONEY_LINE_2_WAY"))?.value ?? null;
+      const a = g?.awayTeam?.odds?.find(o => o.description?.startsWith("MONEY_LINE_2_WAY"))?.value ?? null;
+      // (covers aj "MONEY_LINE_2_WAY_INB", lebo startsWith)
+
+      // čas
+      const dt = g.startTimeUTC || g.startTime || g.gameDate || "";
+      const d = new Date(dt);
+      const time = isNaN(d) ? "-" :
+        `${d.toLocaleDateString("sk-SK",{weekday:"short"})} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+
+      return `
         <tr>
-          <th>Domáci</th>
-          <th>Hostia</th>
-          <th>1 (home)</th>
-          <th>2 (away)</th>
-          <th>Pravdepodobnosť</th>
-          <th>Dátum</th>
+          <td>${homeName}</td>
+          <td>${awayName}</td>
+          <td>${h ?? "-"}</td>
+          <td>${a ?? "-"}</td>
+          <td>${time}</td>
         </tr>
-      </thead>
-      <tbody></tbody>
-    `;
-
-    const tbody = table.querySelector("tbody");
-
-    // ⚙️ Pomocné funkcie
-    function toDecimal(american) {
-      if (american == null || isNaN(american)) return "-";
-
-      const val = Number(american);
-      if (val > 0) {
-        return (1 + val / 100).toFixed(2);
-      } else if (val < 0) {
-        return (1 + 100 / Math.abs(val)).toFixed(2);
-      } else {
-        return "-";
-      }
-    }
-
-    function impliedProbability(decimal) {
-      if (decimal === "-" || decimal <= 1) return "-";
-      return (100 / decimal).toFixed(1) + "%";
-    }
-
-    games.slice(0, 10).forEach(g => {
-      const home = g.homeTeam.name?.default || g.homeTeam.abbrev;
-      const away = g.awayTeam.name?.default || g.awayTeam.abbrev;
-
-      const homeRaw = g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY_TNB")?.value
-        ?? g.homeTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
-
-      const awayRaw = g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY_TNB")?.value
-        ?? g.awayTeam.odds?.find(o => o.description === "MONEY_LINE_2_WAY")?.value;
-
-      const homeOdds = parseFloat(homeRaw);
-      const awayOdds = parseFloat(awayRaw);
-
-      const homeProb = impliedProbability(homeOdds);
-      const awayProb = impliedProbability(awayOdds);
-
-      const date = new Date(g.startTimeUTC).toLocaleString("sk-SK", {
-        weekday: "short",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td><img src="${g.homeTeam.logo}" width="40"> ${home}</td>
-        <td><img src="${g.awayTeam.logo}" width="40"> ${away}</td>
-        <td>${homeOdds}</td>
-        <td>${awayOdds}</td>
-        <td>${homeProb} / ${awayProb}</td>
-        <td>${date}</td>
       `;
-      tbody.appendChild(row);
-    });
+    }).join("");
 
-    container.innerHTML = `
-      <h2>📊 NHL Kurzy (DraftKings)</h2>
-      <p>Aktualizované: ${data.lastUpdatedUTC}</p>
-    `;
-    container.appendChild(table);
-
-  } catch (err) {
-    console.error("❌ Chyba pri fetchnutí odds:", err);
-    container.innerHTML += `<p>Chyba pri načítaní dát: ${err.message}</p>`;
-  }
-}
-
-function impliedProbability(decimal) {
-  return decimal > 1 ? 1 / decimal : 0;
-}
-
-
-// === WHERE TO WATCH ===
-async function displayWhereToWatch() {
-  console.log("📺 [WATCH] Načítavam platformy...");
-  try {
-    const res = await fetch("/api/nhl?type=watch");
-    const data = await res.json();
-    console.log("✅ [WATCH] Dáta:", data);
-
-    const channels = data?.providers || [];
-    const list = document.querySelector("#watch-list");
-
-    list.innerHTML = channels
-      .slice(0, 5)
-      .map(p => `<li>${p.name} – ${p.platform}</li>`)
-      .join("");
-  } catch (err) {
-    console.error("❌ [WATCH] Chyba:", err);
-  }
-}
-
-// === PLAYERS ===
-async function displayPlayers() {
-  console.log("👤 [PLAYERS] Načítavam hráčov...");
-  try {
-    const res = await fetch("/api/nhl?type=players");
-    const data = await res.json();
-    console.log("✅ [PLAYERS] Dáta:", data);
-
-    const players = data?.data || [];
-    const body = document.querySelector("#players-table tbody");
-    if (!players.length) {
-      body.innerHTML = `<tr><td colspan="3">Žiadni hráči</td></tr>`;
-      return;
-    }
-
-    body.innerHTML = players
-      .slice(0, 10)
-      .map(
-        p => `<tr><td>${p.firstName} ${p.lastName}</td><td>${p.teamAbbrevs}</td><td>${p.gamesPlayed}</td></tr>`
-      )
-      .join("");
-  } catch (err) {
-    console.error("❌ [PLAYERS] Chyba:", err);
-  }
-}
-
-// === Načítanie NHL sekcie ===
-async function loadNhlSection() {
-  console.log("🔹 Načítavam NHL sekciu...");
-  try {
-    await displayStandings();
-    await displayScoreboard();
-    await displayOdds();
-    await displayWhereToWatch();
-    await displayPlayers();
-    console.log("✅ NHL sekcia načítaná");
+    updatedEl && (updatedEl.textContent = `Aktualizované: ${data.lastUpdatedUTC || new Date().toISOString()}`);
   } catch (e) {
-    console.error("❌ Chyba pri načítaní NHL sekcie:", e);
+    console.error("ODDS:", e);
+    tbody.innerHTML = `<tr><td colspan="5">API dočasne nedostupné.</td></tr>`;
+    updatedEl && (updatedEl.textContent = "");
   }
 }
 
 
-// 🏁 Spusti po kliknutí na NHL alebo pri načítaní stránky
-document.querySelector("button[onclick*='nhl-section']")
-  ?.addEventListener("click", loadNhlSection);
-
-// alebo spusti hneď po načítaní (ak chceš testovať)
-window.addEventListener("DOMContentLoaded", loadNhlSection);
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-let teamRatings = {};
-let playerRatings = {};
-let allMatches = [];
-
-const BASE_STAKE = 1;
-const ODDS = 2.5;
-const API_BASE = "";
-
-// === Nastavenie dátumov pre sezónu 2025/26 ===
-const START_DATE = "2025-04-01"; // prvé zápasy novej sezóny
-const TODAY = "2025-010-22" //new Date().toISOString().slice(0, 10); // dnešný dátum
-
-// === Pomocné funkcie ===
-const isMobile = () => window.matchMedia("(max-width: 768px)").matches;
-const slug = (s) => encodeURIComponent(String(s || "").toLowerCase().replace(/\s+/g, "-"));
-
-function formatDate(d) {
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-function* dateRange(from, to) {
-  const start = new Date(from);
-  const end = new Date(to);
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    yield formatDate(d);
-  }
-}
-
-// === Normalizácia dát NHL API na formát appky ===
-function nhlTeamName(t) {
-  if (!t) return "Neznámy tím";
-  const place = t.placeName?.default || "";
-  const common = t.commonName?.default || "";
-  const combo = `${place} ${common}`.trim();
-  return combo || t.triCode || t.abbrev || "Tím";
-}
-
-function normalizeNhlGame(game, day) {
-  let status = "not_started";
-  const st = String(game.gameState || "").toUpperCase();
-  if (st === "FINAL" || st === "OFF") status = "closed";
-  else if (st === "LIVE") status = "ap";
-
-  const homeScore = game.homeTeam?.score ?? 0;
-  const awayScore = game.awayTeam?.score ?? 0;
-
-  return {
-    id: game.id,
-    sport_event: {
-      id: String(game.id || ""),
-      start_time: game.startTimeUTC || game.startTime || day,
-      competitors: [
-        { id: String(game.homeTeam?.id || "HOME"), name: nhlTeamName(game.homeTeam) },
-        { id: String(game.awayTeam?.id || "AWAY"), name: nhlTeamName(game.awayTeam) }
-      ]
-    },
-    sport_event_status: {
-      status,
-      home_score: homeScore,
-      away_score: awayScore,
-      overtime: false,
-      ap: status === "ap"
-    },
-    _day: day
-  };
-}
-
-// === Fetch schedule od 8.10.2025 do dnes ===
-async function fetchNhlSchedule() {
-  const games = [];
-  for (const day of dateRange(START_DATE, TODAY)) {
-    try {
-      const url = `https://api-web.nhle.com/v1/schedule/${day}`;
-      const resp = await fetch(url);
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      const groups = Array.isArray(data.gameWeek) ? data.gameWeek : [];
-      groups.forEach(g => {
-        const dayGames = Array.isArray(g.games) ? g.games : [];
-        dayGames.forEach(game => {
-          if (["FINAL", "OFF"].includes(String(game.gameState || "").toUpperCase())) {
-            games.push(normalizeNhlGame(game, day));
-          }
-        });
-      });
-      console.log(`✅ ${day} – načítané ${games.length} zápasov`);
-    } catch (e) {
-      console.warn(`⚠️ Chyba pri dni ${day}: ${e.message}`);
-    }
-  }
-  console.log(`🔹 Spolu odohraných zápasov: ${games.length}`);
-  return games;
-}
-
-// === Výpočet ratingov tímov ===
-function computeTeamRatings(matches) {
-  const START_RATING = 1500;
-  const GOAL_POINTS = 10;
-  const WIN_POINTS = 10;
-  const LOSS_POINTS = -10;
-
-  const ratings = {};
-  const ensure = (team) => { if (ratings[team] == null) ratings[team] = START_RATING; };
-
-  matches.forEach(m => {
-    const home = m.sport_event.competitors[0].name;
-    const away = m.sport_event.competitors[1].name;
-    const hs = m.sport_event_status.home_score ?? 0;
-    const as = m.sport_event_status.away_score ?? 0;
-
-    ensure(home); ensure(away);
-
-    ratings[home] += hs * GOAL_POINTS - as * GOAL_POINTS;
-    ratings[away] += as * GOAL_POINTS - hs * GOAL_POINTS;
-
-    if (hs > as) {
-      ratings[home] += WIN_POINTS;
-      ratings[away] += LOSS_POINTS;
-    } else if (as > hs) {
-      ratings[away] += WIN_POINTS;
-      ratings[home] += LOSS_POINTS;
-    }
-  });
-
-  return ratings;
-}
-
-// === Hlavné načítanie ===
-// ========================= API načítanie =========================
-async function fetchMatches() {
-  try {
-    const response = await fetch(`${API_BASE}/api/matches`);
-    const data = await response.json();
-
-    console.log("✅ Dáta z backendu:", data);
-
-    // NHL formát – očakávame pole data.matches
-    const matches = Array.isArray(data.matches) ? data.matches : [];
-
-    if (matches.length === 0) {
-      console.warn("⚠️ Žiadne zápasy v data.matches");
-    }
-
-    // pre transformáciu do pôvodného tvaru
-    const normalized = matches.map((g) => ({
-      id: g.id,
-      date: g.date,
-      sport_event: {
-        start_time: g.start_time,
-        competitors: [
-          { name: g.home_team },
-          { name: g.away_team }
-        ]
-      },
-      sport_event_status: {
-        status: g.status,
-        home_score: g.home_score,
-        away_score: g.away_score
-      }
-    }));
-
-    allMatches = normalized; // pre Mantingal
-
-    // pre tabuľku zápasov
-    const simplified = normalized.map((m) => ({
-      id: m.id,
-      home_team: m.sport_event.competitors[0].name,
-      away_team: m.sport_event.competitors[1].name,
-      home_score: m.sport_event_status.home_score,
-      away_score: m.sport_event_status.away_score,
-      status: m.sport_event_status.status,
-      date: new Date(m.sport_event.start_time).toISOString().slice(0, 10)
-    }));
-
-    simplified.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    displayMatches(simplified);
-
-    teamRatings = data.teamRatings || {};
-    playerRatings = data.playerRatings || {};
-
-    displayTeamRatings();
-    displayPlayerRatings();
-    displayMantingal();
-  } catch (err) {
-    console.error("❌ Chyba pri načítaní zápasov:", err);
-  }
-}
-
-// === Zápasy ===
-function displayMatches(matches) {
-  const tableBody = document.querySelector("#matches tbody");
-  if (!tableBody) return;
-  tableBody.innerHTML = "";
-
-  if (!matches.length) {
-    tableBody.innerHTML = `<tr><td colspan="4">Žiadne odohrané zápasy</td></tr>`;
-    return;
-  }
-
-  const grouped = {};
-  matches.forEach(m => {
-    if (!grouped[m.date]) grouped[m.date] = [];
-    grouped[m.date].push(m);
-  });
-
-  const days = Object.keys(grouped).sort((a, b) => new Date(b) - new Date(a));
-
-  days.forEach((day, i) => {
-    const roundRow = document.createElement("tr");
-    roundRow.innerHTML = `<td colspan="4"><b>${i + 1}. deň (${day})</b></td>`;
-    tableBody.appendChild(roundRow);
-
-    grouped[day].forEach(match => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${match.home_team}</td>
-        <td>${match.away_team}</td>
-        <td>${match.home_score} : ${match.away_score}</td>
-        <td>${match.status === "closed" ? "✅" : "🟡"}</td>
-      `;
-      tableBody.appendChild(row);
-    });
-  });
-}
-
-// === Rating tímov ===
-function displayTeamRatings() {
-  const tableBody = document.querySelector("#teamRatings tbody");
-  if (!tableBody) return;
-  tableBody.innerHTML = "";
-
-  const sorted = Object.entries(teamRatings).sort((a, b) => b[1] - a[1]);
-  sorted.forEach(([team, rating]) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `<td>${team}</td><td>${rating}</td>`;
-    tableBody.appendChild(row);
-  });
-}
-
-// === Rating hráčov ===
-function displayPlayerRatings() {
-  const tableBody = document.querySelector("#playerRatings tbody");
-  if (!tableBody) return;
-
-  if (!playerRatings || Object.keys(playerRatings).length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="2">Dáta hráčov zatiaľ nepripojené</td></tr>`;
-    return;
-  }
-
-  // Zoradíme hráčov podľa ratingu (od najlepšieho)
-  const sorted = Object.entries(playerRatings).sort((a, b) => b[1] - a[1]);
-
-  tableBody.innerHTML = ""; // vyčisti tabuľku
-
-  sorted.forEach(([player, rating], index) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${index + 1}. ${player}</td>
-      <td>${rating}</td>
-    `;
-    tableBody.appendChild(row);
-  });
-}
-
-// === Mantingal placeholder ===
-function displayMantingal() {
-  const wrap = document.getElementById("mantingal-container");
-  if (!wrap) return;
-  wrap.innerHTML = `
-    <table><tr><td>Mantingal sa zapne po pripojení hráčskych štatistík (boxscore).</td></tr></table>
-  `;
-}
-
-// === Predikcie – Kurzy bookmakerov ===
-async function displayPredictions() {
-  const container = document.getElementById("predictions-section");
-  if (!container) return;
-
-  container.innerHTML = `
-    <h2>Predikcie – Kurzy bookmakerov</h2>
-    <p>Načítavam aktuálne kurzy...</p>
-  `;
+/* ---------- WHERE TO WATCH ---------- */
+async function displayWhereToWatch() {
+  const list = $("#watch-list");
+  if (!list) return;
+  list.innerHTML = `<li>Načítavam...</li>`;
 
   try {
-    const resp = await fetch("/api/predictions");
-    const data = await resp.json();
+    const res = await fetch("/api/nhl-proxy?type=watch");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
 
-    if (!data.games?.length) {
-      container.innerHTML = "<p>Žiadne dostupné kurzy</p>";
+    // rôzne názvy polí z NHL webu
+    const providers =
+      (Array.isArray(data?.providers) && data.providers) ||
+      (Array.isArray(data?.partners)  && data.partners)  ||
+      (Array.isArray(data?.entries)   && data.entries)   ||
+      [];
+
+    if (!providers.length) {
+      list.innerHTML = `<li>Žiadne údaje</li>`;
       return;
     }
 
-    const list = document.createElement("div");
-    list.className = "odds-blocks";
-
-    data.games.forEach(game => {
-      const home = game.homeTeam || "-";
-      const away = game.awayTeam || "-";
-      const homeLogo = game.homeLogo || "";
-      const awayLogo = game.awayLogo || "";
-      const homeOdds = game.homeOdds ?? "-";
-      const awayOdds = game.awayOdds ?? "-";
-
-      const match = document.createElement("div");
-      match.className = "odds-match";
-      match.innerHTML = `
-        <div class="match-header">
-          <img src="${homeLogo}" alt="${home}" class="team-logo">
-          <span class="team-name">${home}</span>
-          <span class="vs">–</span>
-          <span class="team-name">${away}</span>
-          <img src="${awayLogo}" alt="${away}" class="team-logo">
-        </div>
-
-        <div class="odds-row">
-          <div class="odds-cell"><b>1</b><br>${homeOdds}</div>
-          <div class="odds-cell"><b>2</b><br>${awayOdds}</div>
-        </div>
-      `;
-      list.appendChild(match);
-    });
-
-    container.innerHTML = `<h2>Predikcie – Kurzy bookmakerov</h2>`;
-    container.appendChild(list);
-
-  } catch (err) {
-    console.error("❌ Chyba pri načítaní predikcií:", err);
-    container.innerHTML = `<p>Chyba pri načítaní kurzov: ${err.message}</p>`;
+    list.innerHTML = providers.slice(0, 12).map(p => {
+      const name = p.name || p.providerName || p.platform || p.channel || "Poskytovateľ";
+      const region = p.country || p.region || p.locale || "";
+      return `<li>${name}${region ? ` — ${region}` : ""}</li>`;
+    }).join("");
+  } catch (e) {
+    console.error("❌ [WATCH] Chyba:", e);
+    list.innerHTML = `<li>API dočasne nedostupné.</li>`;
   }
 }
 
-// 🔁 Načítaj predikcie, keď sa otvorí sekcia
-document
-  .querySelector("button[onclick*='predictions-section']")
-  ?.addEventListener("click", displayPredictions);
 
-// === Štart ===
-window.addEventListener("DOMContentLoaded", () => {
-  fetchMatches();
-  displayPredictions(); // 🔹 pridaj túto funkciu
-  loadNhlSection(); // 🏒 pridaj túto funkciu
-});
+/* ---------- PLAYERS (Top hráči) ---------- */
+async function displayPlayers() {
+  const tbody = $("#players-table tbody");
+  if (!tbody) return;
+  tbody.innerHTML = `<tr><td colspan="3">Načítavam...</td></tr>`;
+
+  try {
+    const res  = await fetch("/api/nhl-proxy?type=players");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    const players = Array.isArray(data?.data) ? data.data : [];
+
+    if (!players.length) {
+      tbody.innerHTML = `<tr><td colspan="3">Žiadni hráči</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = players.slice(0, 12).map(p => `
+      <tr>
+        <td>${[p.firstName, p.lastName].filter(Boolean).join(" ")}</td>
+        <td>${p.teamAbbrevs || p.teamAbbrev || "-"}</td>
+        <td>${p.gamesPlayed ?? p.gp ?? "-"}</td>
+      </tr>
+    `).join("");
+  } catch (e) {
+    console.error("❌ [PLAYERS] Chyba:", e);
+    tbody.innerHTML = `<tr><td colspan="3">API dočasne nedostupné.</td></tr>`;
+  }
+}
+
+/* ---------- Loader pre NHL sekciu (spustiť len raz) ---------- */
+
+async function loadNhlSection() {
+  if (NHL_INIT_DONE) return;
+  NHL_INIT_DONE = true;
+  displayStandings();
+  displayScoreboard();
+  displayOdds();
+  displayWhereToWatch();
+  //displayPlayers();
+}
+(function init(){
+  const start = () => {
+    try { loadNhlSection(); console.log("✅ Inicializované: NHL sekcia načítaná"); }
+    catch(e){ console.error("❌ Init error:", e); }
+  };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once:true });
+  } else {
+    start();
+  }
+})();
+
+/* ---------- Ostatné tvoje sekcie (placeholders, aby nič nepadalo) ---------- */
+// Ak máš vlastné implementácie, nechaj si ich. Tieto sú len bezpečné „no-op“, aby nepadali volania nižšie.
+function fetchMatches() { /* tvoje výsledky – nechaj prázdne, ak nepoužívaš */ }
+function displayPredictions() { /* tvoje predikcie – nechaj prázdne, ak nepoužívaš */ }
+
+/* ---------- Inicializácia po načítaní DOM ---------- */
+(function init() {
+  // pre istotu: nespúšťaj dvakrát (niekedy bundlery/SPA fire-uju DOMContentLoaded duplicitne)
+  const start = () => {
+    try {
+      fetchMatches();
+      displayPredictions();
+      loadNhlSection();
+      console.log("✅ Inicializované: NHL sekcia načítaná");
+    } catch (e) {
+      console.error("❌ Init error:", e);
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", start, { once: true });
+  } else {
+    start();
+  }
+})();

@@ -95,16 +95,41 @@
 
         <div class="section" id="nhl-section">
         <h3>Aktuálna tabuľka</h3>
-            <table id="standings-table"><tbody></tbody></table>
+            <table id="standings-table">
+                <thead>
+                    <tr>
+                    <th>Tím</th>
+                    <th>Z</th>
+                    <th>V</th>
+                    <th>P</th>
+                    <th>Body</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
 
             <h3>Prebiehajúce zápasy</h3>
             <table id="scoreboard-table"><tbody></tbody></table>
 
             <h3>Stávkové kurzy (odds)</h3>
-            <table id="odds-table"><tbody></tbody></table>
+            <p id="odds-updated" style="margin:0 0 8px 0;opacity:.7;"></p>
+            <table id="odds-table">
+            <thead>
+                <tr>
+                <th>DOMÁCI</th>
+                <th>HOSTIA</th>
+                <th>1 (HOME)</th>
+                <th>2 (AWAY)</th>
+                <th>PRAVDEP.</th>
+                <th>ČAS</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+            </table>
 
             <h3>Kde sledovať</h3>
             <ul id="watch-list"></ul>
+
 
             <h3>Top hráči</h3>
             <table id="players-table"><tbody></tbody></table>

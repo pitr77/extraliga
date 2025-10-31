@@ -1,78 +1,85 @@
+// api/nhl-proxy.js
 export default async function handler(req, res) {
-  const type = req.query.type || "schedule"; // napr. standings, scoreboard, odds, players
-  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  try {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const type = url.searchParams.get("type") || "scoreboard";
 
-  let url = "";
-
-  switch (type) {
-    case "standings":
-      url = "https://api-web.nhle.com/v1/standings/now";
-      break;
-    case "scoreboard":
-      url = "https://api-web.nhle.com/v1/scoreboard/now";
-      break;
-    case "odds": {
-      const daysForward = 7;
-      const baseUrl = "https://api-web.nhle.com/v1/partner-game/CZ/now";
-      const today = new Date();
-
-      console.log(`💰 Načítavam kurzy NHL na ${daysForward} dní dopredu`);
-
-      try {
-        // 🧭 vytvoríme 7 fetchov paralelne
-        const urls = [];
-        for (let i = 0; i < daysForward; i++) {
-          urls.push(fetch(baseUrl, { cache: "no-store" }));
-        }
-
-        const responses = await Promise.all(urls);
-        const jsons = await Promise.all(
-          responses.map(r => (r.ok ? r.json() : { games: [] }))
-        );
-
-        // 🔁 zlúčenie všetkých hier do jednej kolekcie
-        const gamesMap = new Map();
-        jsons.forEach(data => {
-          (data.games || []).forEach(g => {
-            gamesMap.set(g.gameId, g);
-          });
-        });
-
-        const merged = { games: Array.from(gamesMap.values()) };
-
-        console.log(`✅ Načítané ${merged.games.length} zápasov (do 7 dní vopred)`);
-
-        res.status(200).json(merged);
-      } catch (e) {
-        console.error("❌ Chyba pri načítaní kurzov:", e);
-        res.status(500).json({ error: e.message });
-      }
+    const endpoint = pickEndpoint(type);
+    if (!endpoint) {
+      res.status(400).json({ error: "Unknown type" });
       return;
     }
 
-      break;
-    case "watch":
-      url = "https://api-web.nhle.com/v1/where-to-watch";
-      break;
-    case "players":
-      url = "https://api.nhle.com/stats/rest/en/players";
-      break;
-    default:
-      url = `https://api-web.nhle.com/v1/schedule/${date}`;
-  }
-
-  try {
-    console.log("🟢 Fetchujem NHL endpoint:", url);
-    const r = await fetch(url, { cache: "no-store" });
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-
-    console.log("💰 NHL sample:", JSON.stringify(data?.games?.[0] || data?.standings?.[0] || {}, null, 2));
-
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    const data = await cachedFetchJson(endpoint, 60_000); // 60 s cache
+    res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=30");
     res.status(200).json(data);
   } catch (e) {
-    console.error("❌ Chyba pri fetchnutí NHL API:", e.message);
-    res.status(500).json({ error: e.message });
+    console.error("❌ Proxy error:", e);
+    res.status(500).json({ error: String(e?.message || e) });
   }
 }
+
+// ---- helpers ----
+
+function pickEndpoint(type) {
+  switch (type) {
+    case "standings":  return "https://api-web.nhle.com/v1/standings/now";
+    case "scoreboard": return "https://api-web.nhle.com/v1/scoreboard/now";
+    case "watch":      return "https://api-web.nhle.com/v1/where-to-watch";
+    case "players":    return "https://api.nhle.com/stats/rest/en/players";
+    case "odds":       return "https://api-web.nhle.com/v1/partner-game/CZ/now";
+    default:           return null;
+  }
+}
+
+const CACHE = new Map();   // key -> {ts, data}
+const PENDING = new Map(); // key -> Promise
+
+async function cachedFetchJson(url, ttlMs) {
+  const now = Date.now();
+  const hit = CACHE.get(url);
+  if (hit && (now - hit.ts) < ttlMs) return hit.data;
+
+  // collapse concurrent requests to the same URL
+  const pending = PENDING.get(url);
+  if (pending) return pending;
+
+  const p = (async () => {
+    const data = await fetchWithRetry(url, 3);
+    CACHE.set(url, { ts: Date.now(), data });
+    PENDING.delete(url);
+    return data;
+  })();
+
+  PENDING.set(url, p);
+  return p;
+}
+
+async function fetchWithRetry(url, maxAttempts = 3) {
+  let lastErr;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const r = await fetch(url, {
+        headers: {
+          // niektoré NHL endpointy sú citlivé na UA/Referer
+          "User-Agent": "Mozilla/5.0",
+          "Referer": "https://www.nhl.com/"
+        }
+      });
+      if (r.status === 429) {
+        const wait = 300 * Math.pow(2, i) + Math.floor(Math.random() * 150);
+        await delay(wait);
+        continue;
+      }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.json();
+    } catch (e) {
+      lastErr = e;
+      const wait = 300 * Math.pow(2, i) + Math.floor(Math.random() * 150);
+      await delay(wait);
+    }
+  }
+  throw lastErr || new Error("Fetch failed");
+}
+
+const delay = (ms) => new Promise((r) => setTimeout(r, ms));
