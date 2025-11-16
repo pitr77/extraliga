@@ -1,17 +1,44 @@
 // api/nhl-proxy.js
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
 export default async function handler(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const type = url.searchParams.get("type") || "scoreboard";
 
+    // === 1) najprv skús Upstash pre "standings"
+    if (type === "standings" && redis) {
+      const cached = await redis.get("nhl:standings");
+      if (cached) {
+        res.setHeader("x-source", "upstash");
+        res.setHeader("Cache-Control", "s-maxage=30");
+        res.status(200).json(cached);
+        return;
+      }
+    }
+
+    // === 2) inak live fetch (a uloženie do Upstash ako bonus)
     const endpoint = pickEndpoint(type);
     if (!endpoint) {
       res.status(400).json({ error: "Unknown type" });
       return;
     }
 
-    const data = await cachedFetchJson(endpoint, 60_000); // 60 s cache
+    const data = await cachedFetchJson(endpoint, 60_000);
     res.setHeader("Cache-Control", "s-maxage=60, stale-while-revalidate=30");
+
+    // ak práve ťaháme standings live, ulož aj do Upstash (aby ďalší hit išiel z cache)
+    if (type === "standings" && redis) {
+      await redis.set("nhl:standings", data);
+      await redis.set("nhl:standings:ts", new Date().toISOString());
+      res.setHeader("x-source", "live→upstash");
+    }
+
     res.status(200).json(data);
   } catch (e) {
     console.error("❌ Proxy error:", e);
@@ -20,7 +47,6 @@ export default async function handler(req, res) {
 }
 
 // ---- helpers ----
-
 function pickEndpoint(type) {
   switch (type) {
     case "standings":  return "https://api-web.nhle.com/v1/standings/now";
@@ -32,15 +58,14 @@ function pickEndpoint(type) {
   }
 }
 
-const CACHE = new Map();   // key -> {ts, data}
-const PENDING = new Map(); // key -> Promise
+const CACHE = new Map();
+const PENDING = new Map();
 
 async function cachedFetchJson(url, ttlMs) {
   const now = Date.now();
   const hit = CACHE.get(url);
   if (hit && (now - hit.ts) < ttlMs) return hit.data;
 
-  // collapse concurrent requests to the same URL
   const pending = PENDING.get(url);
   if (pending) return pending;
 
@@ -60,15 +85,11 @@ async function fetchWithRetry(url, maxAttempts = 3) {
   for (let i = 0; i < maxAttempts; i++) {
     try {
       const r = await fetch(url, {
-        headers: {
-          // niektoré NHL endpointy sú citlivé na UA/Referer
-          "User-Agent": "Mozilla/5.0",
-          "Referer": "https://www.nhl.com/"
-        }
+        headers: { "User-Agent": "Mozilla/5.0", "Referer": "https://www.nhl.com/" }
       });
       if (r.status === 429) {
         const wait = 300 * Math.pow(2, i) + Math.floor(Math.random() * 150);
-        await delay(wait);
+        await new Promise(r => setTimeout(r, wait));
         continue;
       }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -76,10 +97,8 @@ async function fetchWithRetry(url, maxAttempts = 3) {
     } catch (e) {
       lastErr = e;
       const wait = 300 * Math.pow(2, i) + Math.floor(Math.random() * 150);
-      await delay(wait);
+      await new Promise(r => setTimeout(r, wait));
     }
   }
   throw lastErr || new Error("Fetch failed");
 }
-
-const delay = (ms) => new Promise((r) => setTimeout(r, ms));
